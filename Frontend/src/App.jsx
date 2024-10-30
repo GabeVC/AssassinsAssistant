@@ -1,33 +1,44 @@
-import { useState, useEffect } from 'react';
-import './App.css';
+// src/App.js
+import React, { useEffect, useState } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './firebaseConfig';
+import { Route, Routes } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext'
+import LandingPage from './components/LandingPage';
+import LoginPage from './components/LoginPage';
+import RegisterPage from './components/RegisterPage';
+import HomePage from './components/HomePage';
+import ProtectedRoute from './components/ProtectedRoute';
 
-function App() {
-  // State to store the message from the Koa API and the count
-  const [message, setMessage] = useState('');
-  const [count, setCount] = useState(0);
+const App = () => {
+  const [user, setUser] = useState(null);
 
-  // Fetch the message from the Koa API when the component mounts
   useEffect(() => {
-    fetch('http://localhost:4000/api')
-      .then((response) => response.json())
-      .then((data) => {
-        setMessage(data.message); // Set the message from the API
-      })
-      .catch((error) => {
-        console.error('Error fetching message from API:', error);
-      });
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user); // Set the authenticated user
+    });
+    return () => unsubscribe();
   }, []);
 
   return (
-    <>
-      <div>
-        <h1>Koa work yippee</h1>
-        <p>
-          Message from the Koa API: <strong>{message || 'Loading...'}</strong>
-        </p>
-      </div>
-    </>
+    <div className="App">
+      <AuthProvider>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route
+          path="/home"
+          element={
+            <ProtectedRoute user={user}>
+              <HomePage />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+      </AuthProvider>
+    </div>
   );
-}
+};
 
 export default App;
