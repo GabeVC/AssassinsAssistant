@@ -14,7 +14,7 @@ const LoginPage = () => {
     e.preventDefault();
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate('/home'); // Redirect after successful login
+      navigate('/home');
     } catch (error) {
       setError(error.message);
     }

@@ -1,4 +1,3 @@
-// src/App.js
 import React, { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebaseConfig';
@@ -9,6 +8,7 @@ import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
 import HomePage from './components/HomePage';
 import ProtectedRoute from './components/ProtectedRoute';
+import GamePage from './components/GamePage'
 
 const App = () => {
   const [user, setUser] = useState(null);
@@ -35,6 +35,7 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+        <Route path="/games/:gameId" element={<GamePage />} />
       </Routes>
       </AuthProvider>
     </div>

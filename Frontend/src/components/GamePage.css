@@ -1,0 +1,71 @@
+.game-details {
+    padding: 2rem;
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  
+  .game-details h2 {
+    font-size: 2rem;
+    color: #007bff;
+    margin-bottom: 1rem;
+  }
+  
+  .game-details p {
+    font-size: 1rem;
+    margin: 0.5rem 0;
+  }
+  
+
+  .player-list-container {
+    margin-top: 1.5rem;
+  }
+  
+  .player-list-container h3 {
+    font-size: 1.2rem;
+    color: #007bff;
+    margin-bottom: 0.5rem;
+  }
+  
+  .player-list {
+    max-height: 200px; 
+    overflow-y: auto; 
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 0.5rem;
+    background-color: #f9f9f9;
+  }
+  
+ 
+  .player {
+    padding: 0.5rem;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .player:last-child {
+    border-bottom: none;
+  }
+  
+  .player p {
+    margin: 0.2rem 0;
+    font-size: 0.9rem;
+    color: #555;
+  }
+  .begin-game-button {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: bold;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: background-color 0.3s ease;
+  }
+  
+  .begin-game-button:hover {
+    background-color: #218838;
+  }
+  
+  
