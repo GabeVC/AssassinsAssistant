@@ -7,7 +7,13 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
+# theres some platform-specific modules 
+# that break when you try to run on something other than windows afaik
+# Install them yourself lol
+node_modules/
+Backend/node_modules/
+Frontend/node_modules/
+
 dist
 dist-ssr
 *.local

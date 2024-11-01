@@ -2,7 +2,7 @@
   "name": "assassins-assistant",
   "version": "1.0.0",
   "scripts": {
-    "dev": "concurrently \"cd frontend && npm run dev\" \"cd backend && node index.js\""
+    "dev": "concurrently \"cd Frontend && npm run dev\" \"cd Backend && node index.js\""
   },
   "dependencies": {
     "concurrently": "^7.0.0",
