@@ -3,7 +3,6 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 import { useNavigate } from 'react-router-dom';
 
-
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,6 +44,9 @@ const LoginPage = () => {
         {error && <p className="error">{error}</p>}
         <button type="submit">Log In</button>
       </form>
+      <div>
+        Don't have an account? Register <a href='/register'>here</a>
+      </div>
     </div>
   );
 };

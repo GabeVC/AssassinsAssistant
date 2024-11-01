@@ -70,6 +70,7 @@ const RegisterPage = () => {
         {error && <p className="error">{error}</p>}
         <button type="submit">Register</button>
     </form>
+    Already have an account? Login <a href='/login'>here</a>
     </div>
 );
 };
