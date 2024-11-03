@@ -10,6 +10,7 @@ const GamePage = () => {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false); 
+  const [showInfo, setShowInfo] = useState(false);
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -66,7 +67,7 @@ const GamePage = () => {
           <h2>{gameData.title}</h2>
           <p><strong>Status:</strong> {gameData.isActive ? 'Active' : 'Inactive'}</p>
           <p><strong>Players Remaining:</strong> {gameData.playerIds.length}</p>
-          <p><strong>Rules:</strong> {gameData.rules}</p>
+          {/*<p><strong>Rules:</strong> {gameData.rules}</p>*/}
 
           {/* Begin Game Button */}
           {isAdmin && !gameData.isActive && (
@@ -87,6 +88,25 @@ const GamePage = () => {
               ))}
             </div>
           </div>
+
+          {/* Button to show the info block */}
+          <button onClick={() => setShowInfo(true)} className="info-button">
+            Show Rules
+          </button>
+
+          {/* Dismissible info block */}
+          {showInfo && (
+            <div className="modal-overlay">
+              <div className="modal-content">
+                <button onClick={() => setShowInfo(false)} className="close-button">
+                  &times;
+                </button>
+                <h2>Rules</h2>
+                <p>{gameData.rules}</p>
+              </div>
+            </div>
+          )}
+
         </>
       ) : (
         <p>Game not found.</p>
