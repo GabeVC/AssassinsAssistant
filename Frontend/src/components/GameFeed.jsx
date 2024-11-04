@@ -1,44 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebaseConfig';
-import { doc, getDoc, updateDoc, arrayUnion, runTransaction } from 'firebase/firestore';
+import { doc, getDoc, deleteDoc, updateDoc, arrayUnion, runTransaction } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import './GamePage.css';
 import './GameFeed.css';
 
-const AnnouncementItem = ({ announcementId }) => { 
-    const [announcementData, setAnnouncementData] = useState(null);
+const AnnouncementItem = ({ announcement, isAdmin }) => {
 
-    useEffect(() => {
-        const fetchAnnouncementData = async () => {
-            if (!announcementId) return;  // Ensure there's an announcementId
+    const { id, content, timestamp } = announcement;
 
-            try {
-                const announcementRef = doc(db, 'announcements', announcementId);
-                const announcementSnap = await getDoc(announcementRef);
+    const handleEdit = async () => {
+        const newContent = prompt("Edit the announcement:", content);
+        if (newContent) {
+        const announcementRef = doc(db, 'announcements', id);
+        await updateDoc(announcementRef, { content: newContent });
+        }
+    };
 
-                if (announcementSnap.exists()) {
-                    setAnnouncementData(announcementSnap.data());
-                } else {
-                    console.log('No such document!');
-                }
-            } catch (error) {
-                console.error('Error fetching announcement:', error);
-            }
-        };
-
-        fetchAnnouncementData();
-    }, [announcementId]);
+    const handleDelete = async () => {
+        const confirmDelete = window.confirm("Are you sure you want to delete this announcement?");
+        if (confirmDelete) {
+        const announcementRef = doc(db, 'announcements', id);
+        await deleteDoc(announcementRef);
+        }
+    };
     
     return (
         <div className="feed-item">
-            {announcementData ? (
                 <>
-                    <p>{announcementData.content}</p>
-                    <p>{new Date(announcementData.timestamp.seconds * 1000).toLocaleString()}</p>
+                    <div className="content"><p>{content}</p></div>
+                    <p className="timestamp">{new Date(timestamp.seconds * 1000).toLocaleString()}</p>
                 </>
-            ) : (
-                <p>Loading...</p>
-            )}
+            
+                {isAdmin && (
+                    <div className="admin-actions">
+                    <button onClick={handleEdit} className="edit-button">Edit</button>
+                    <button onClick={handleDelete} className="delete-button">Delete</button>
+                    </div>
+                )}
         </div>
     );
 };

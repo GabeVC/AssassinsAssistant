@@ -125,7 +125,7 @@ const GamePage = () => {
             <div className="player-list">
               {announcements.map((announcement) => (
                 <div key={announcement.id}>
-                <AnnouncementItem announcementId={announcement.id}  />
+                <AnnouncementItem announcement={announcement}  isAdmin={isAdmin}/>
             </div>
               ))}
             </div>

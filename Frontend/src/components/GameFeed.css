@@ -13,12 +13,12 @@
     margin: 4px 0;
 }
 
-.feed-item p:first-child {
+.feed-item .content {
     font-weight: 600;
     color: #333;
 }
 
-.feed-item p:last-child {
+.feed-item .timestamp {
     font-size: 0.85em;
     color: #888;
     text-align: right;
