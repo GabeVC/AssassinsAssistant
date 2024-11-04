@@ -3,6 +3,7 @@ import { auth, db } from '../firebaseConfig';
 import { doc, getDoc, updateDoc, arrayUnion, runTransaction } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import './GamePage.css';
+import './GameFeed.css';
 
 const AnnouncementItem = ({ announcementId }) => { 
     const [announcementData, setAnnouncementData] = useState(null);

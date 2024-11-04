@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebaseConfig';
-import { doc, getDoc, updateDoc, collection, where, query, getDocs } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, updateDoc, collection, where, query, getDocs } from 'firebase/firestore';
 import CreateAnnouncement from './CreateAnnouncement';
 import AnnouncementItem from './GameFeed';
 import './GamePage.css'
@@ -10,7 +10,7 @@ const GamePage = () => {
   const { gameId } = useParams();
   const [gameData, setGameData] = useState(null);
   const [players, setPlayers] = useState([]);
-  const [as, setAs] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false); 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,18 +37,22 @@ const GamePage = () => {
           }));
           setPlayers(playerList);
 
-          const asRef = collection(db, 'announcements');
-          const aQuery = query(asRef, where('gameId', '==', gameId));
-          const aSnapshot = await getDocs(aQuery);
-          const aList = aSnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          setAs(aList);
+          // Set up a listener for announcements
+          const announcementsRef = collection(db, 'announcements');
+          const announcementQuery = query(announcementsRef, where('gameId', '==', gameId));
+          const unsubscribe = onSnapshot(announcementQuery, (snapshot) => {
+            const announcementList = snapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+            setAnnouncements(announcementList);
+          });
 
 
           const currentUser = playerList.find(player => player.isAdmin);
           setIsAdmin(currentUser ? currentUser.isAdmin : false); 
+
+          return () => unsubscribe();
         } else {
           console.error("No such game exists!");
         }
@@ -110,12 +114,12 @@ const GamePage = () => {
           </div>
 
           {/* Scrollable player list */}
-          <div className="player-list-container">
+          <div >
             <h3>Announcements</h3>
             <div className="player-list">
-              {as.map((a) => (
-                <div className="component-frame" key={a.id}>
-                <AnnouncementItem announcementId={a.id}  />
+              {announcements.map((announcement) => (
+                <div key={announcement.id}>
+                <AnnouncementItem announcementId={announcement.id}  />
             </div>
               ))}
             </div>
