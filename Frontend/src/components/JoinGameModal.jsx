@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, collection, query, where, getDocs, setDoc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
 import './JoinGameModal.css';
 import { db, auth } from '../firebaseConfig';
 import { v4 as uuidv4 } from 'uuid';
@@ -26,9 +26,20 @@ const JoinGameModal = ({ isOpen, onClose }) => {
   
       const gameData = gameDoc.data();
   
+  
       const user = auth.currentUser;
-      const playerId = uuidv4();      
+      const playersRef = collection(db, 'players');
+      const playerQuery = query(playersRef, where('gameId', '==', gameId));
+      const playerSnapshot = await getDocs(playerQuery);
+      const playerList = playerSnapshot.docs.map((doc) => doc.data());
+      const playerId = uuidv4();
       const playerRef = doc(db, 'players', playerId);
+      const existingPlayer = playerList.find(player => player.userId === user.uid);
+      if (existingPlayer) {
+        setError('You are already part of this game.');
+        return;
+      }
+
   
       await setDoc(playerRef, {
         userId: user ? user.uid : null,
@@ -43,14 +54,14 @@ const JoinGameModal = ({ isOpen, onClose }) => {
       });
   
       console.log(`Successfully joined game with ID: ${gameId}`);
-      onClose(); // Close the modal after successful join
+      onClose(); 
     } catch (error) {
       console.error("Error joining game:", error);
       setError('There was an issue joining the game. Please try again.');
     }
   };
 
-  if (!isOpen) return null; // Return null if not open
+  if (!isOpen) return null;
 
   return (
     <div className="modal-overlay">
