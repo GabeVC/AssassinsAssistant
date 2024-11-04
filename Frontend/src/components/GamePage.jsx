@@ -3,12 +3,14 @@ import { useParams } from 'react-router-dom';
 import { db } from '../firebaseConfig';
 import { doc, getDoc, updateDoc, collection, where, query, getDocs } from 'firebase/firestore';
 import CreateAnnouncement from './CreateAnnouncement';
+import AnnouncementItem from './GameFeed';
 import './GamePage.css'
 
 const GamePage = () => {
   const { gameId } = useParams();
   const [gameData, setGameData] = useState(null);
   const [players, setPlayers] = useState([]);
+  const [as, setAs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false); 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,6 +36,15 @@ const GamePage = () => {
             ...doc.data(),
           }));
           setPlayers(playerList);
+
+          const asRef = collection(db, 'announcements');
+          const aQuery = query(asRef, where('gameId', '==', gameId));
+          const aSnapshot = await getDocs(aQuery);
+          const aList = aSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setAs(aList);
 
 
           const currentUser = playerList.find(player => player.isAdmin);
@@ -94,6 +105,18 @@ const GamePage = () => {
                   <p><strong>Name:</strong> {player.playerName}</p>
                   <p><strong>Status:</strong> {player.isAlive ? 'Alive' : 'Eliminated'}</p>
                 </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Scrollable player list */}
+          <div className="player-list-container">
+            <h3>Announcements</h3>
+            <div className="player-list">
+              {as.map((a) => (
+                <div className="component-frame" key={a.id}>
+                <AnnouncementItem announcementId={a.id}  />
+            </div>
               ))}
             </div>
           </div>
