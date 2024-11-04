@@ -5,6 +5,9 @@
     "dev": "concurrently \"cd Frontend && npm run dev\" \"cd Backend && node index.js\""
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^6.6.0",
+    "@fortawesome/free-solid-svg-icons": "^6.6.0",
+    "@fortawesome/react-fontawesome": "^0.2.2",
     "concurrently": "^7.0.0",
     "firebase": "^11.0.1",
     "koa": "^2.15.3",

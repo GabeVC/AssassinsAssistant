@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebaseConfig';
+import { Link, useNavigate } from 'react-router-dom';
 import { doc, getDoc, onSnapshot, updateDoc, collection, where, query, getDocs } from 'firebase/firestore';
 import CreateAnnouncement from './CreateAnnouncement';
-import AnnouncementItem from './GameFeed';
+import {AnnouncementItem} from './GameFeed';
 import './GamePage.css'
 
 const GamePage = () => {
@@ -16,6 +17,7 @@ const GamePage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -96,15 +98,17 @@ const GamePage = () => {
 
           {/* Admin Settings Page */}
           {isAdmin && gameData.isActive && (
-            <><button onClick={openModal}>Make an Announcement</button><CreateAnnouncement isOpen={isModalOpen} onClose={closeModal} gameId={gameId}/></>
+            <div><button onClick={openModal}>Make an Announcement</button><CreateAnnouncement isOpen={isModalOpen} onClose={closeModal} gameId={gameId}/></div>
           )}
 
           {/* Begin Game Button */}
           {isAdmin && !gameData.isActive && (
-            <button onClick={handleBeginGame} className="begin-game-button">
+            <div><button onClick={handleBeginGame} className="begin-game-button">
               Begin Game
-            </button>
+            </button></div>
           )}
+
+          <button onClick={() => navigate(`/gamefeed/${gameId}`)}>Game Feed</button>
 
           {/* Scrollable player list */}
           <div className="player-list-container">
@@ -120,7 +124,7 @@ const GamePage = () => {
           </div>
 
           {/* Scrollable player list */}
-          <div >
+          <div className="player-list-container" >
             <h3>Announcements</h3>
             <div className="player-list">
               {announcements.map((announcement) => (

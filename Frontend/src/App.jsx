@@ -8,7 +8,8 @@ import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
 import HomePage from './components/HomePage';
 import ProtectedRoute from './components/ProtectedRoute';
-import GamePage from './components/GamePage'
+import GamePage from './components/GamePage';
+import GameFeed from './components/GameFeed'
 
 const App = () => {
   const [user, setUser] = useState(null);
@@ -36,6 +37,7 @@ const App = () => {
           }
         />
         <Route path="/games/:gameId" element={<GamePage />} />
+        <Route path="/gamefeed/:gameId" element={<GameFeed />} />
       </Routes>
       </AuthProvider>
     </div>

@@ -23,3 +23,29 @@
     color: #888;
     text-align: right;
 }
+
+.admin-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  
+  .icon-button {
+    padding: 6px;
+    border: none;
+    border-radius: 4px;
+    background: none;
+  }
+  
+  .edit-button {
+    color: #007bff;
+  }
+  
+  .delete-button {
+    color: #dc3545;
+  }
+  
+  .icon-button:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+  
