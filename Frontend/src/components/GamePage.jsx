@@ -45,7 +45,13 @@ const GamePage = () => {
               id: doc.id,
               ...doc.data(),
             }));
-            setAnnouncements(announcementList);
+
+            // Sort announcements by timestamp (assuming timestamp is a Firestore Timestamp)
+            const sortedAnnouncements = announcementList.sort((a, b) => {
+              return b.timestamp.seconds - a.timestamp.seconds; // Sort in descending order
+            });
+
+            setAnnouncements(sortedAnnouncements);
           });
 
 
