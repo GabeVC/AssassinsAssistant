@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebaseConfig';
 import { doc, getDoc, updateDoc, collection, where, query, getDocs } from 'firebase/firestore';
+import CreateAnnouncement from './CreateAnnouncement';
 import './GamePage.css'
 
 const GamePage = () => {
@@ -10,6 +11,9 @@ const GamePage = () => {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false); 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -64,9 +68,15 @@ const GamePage = () => {
       {gameData ? (
         <>
           <h2>{gameData.title}</h2>
+          <p><strong>Your Role:</strong> {isAdmin ? 'Admin' : 'Player'}</p>
           <p><strong>Status:</strong> {gameData.isActive ? 'Active' : 'Inactive'}</p>
           <p><strong>Players Remaining:</strong> {gameData.playerIds.length}</p>
           <p><strong>Rules:</strong> {gameData.rules}</p>
+
+          {/* Admin Settings Page */}
+          {isAdmin && gameData.isActive && (
+            <><button onClick={openModal}>Make an Announcement</button><CreateAnnouncement isOpen={isModalOpen} onClose={closeModal} gameId={gameId}/></>
+          )}
 
           {/* Begin Game Button */}
           {isAdmin && !gameData.isActive && (
