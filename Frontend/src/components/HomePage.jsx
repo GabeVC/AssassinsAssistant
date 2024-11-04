@@ -4,15 +4,20 @@ import { useAuth } from '../context/AuthContext';
 import { db } from '../firebaseConfig'
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import CreateGame from './CreateGame';
+import JoinGameModal from './JoinGameModal';
+import JoinGame from './JoinGame';
 import './HomePage.css';
 
 const HomePage = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [games, setGames] = useState([]);
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const openCreateModal = () => setIsCreateModalOpen(true);
+  const closeCreateModal = () => setIsCreateModalOpen(false);
+  const openJoinModal = () => setIsJoinModalOpen(true);
+  const closeJoinModal = () => setIsJoinModalOpen(false);
   
 
   const handleLogout = async () => {
@@ -94,8 +99,10 @@ return (
       </div>
   
         
-        <button onClick={openModal}>Create New Game</button>
-        <CreateGame isOpen={isModalOpen} onClose={closeModal} />
+        <button onClick={openCreateModal}>Create New Game</button>
+        <button onClick={openJoinModal}>Join Game</button>
+        <JoinGameModal isOpen={isJoinModalOpen} onClose={closeJoinModal} />
+        <CreateGame isOpen={isCreateModalOpen} onClose={closeCreateModal} />
     </div>
     );
 };

@@ -7,6 +7,7 @@ import LandingPage from './components/LandingPage';
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
 import HomePage from './components/HomePage';
+import JoinGame from './components/JoinGame';
 import ProtectedRoute from './components/ProtectedRoute';
 import GamePage from './components/GamePage'
 
@@ -36,6 +37,7 @@ const App = () => {
           }
         />
         <Route path="/games/:gameId" element={<GamePage />} />
+        <Route path="/join/:gameId?" element={<JoinGame />} />
       </Routes>
       </AuthProvider>
     </div>

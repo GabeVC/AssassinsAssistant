@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebaseConfig';
 import { doc, getDoc, updateDoc, collection, where, query, getDocs } from 'firebase/firestore';
+import GameSettings from './GameSettings';
 import './GamePage.css'
 
 const GamePage = () => {
@@ -11,6 +12,7 @@ const GamePage = () => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false); 
   const [showInfo, setShowInfo] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -48,6 +50,9 @@ const GamePage = () => {
     fetchGameData();
   }, [gameId]);
 
+  const openSettings = () => setShowSettings(true);
+  const closeSettings = () => setShowSettings(false);
+
   const handleBeginGame = async () => {
     try {
       const gameRef = doc(db, 'games', gameId);
@@ -69,12 +74,22 @@ const GamePage = () => {
           <p><strong>Players Remaining:</strong> {gameData.playerIds.length}</p>
           {/*<p><strong>Rules:</strong> {gameData.rules}</p>*/}
 
+          {isAdmin && (
+            <button onClick={openSettings} className="settings-button">
+              Settings
+            </button>
+          )}
           {/* Begin Game Button */}
           {isAdmin && !gameData.isActive && (
             <button onClick={handleBeginGame} className="begin-game-button">
               Begin Game
             </button>
           )}
+          <GameSettings
+            isOpen={showSettings}
+            onClose={closeSettings}
+            inviteLink={`${window.location.origin}/join/${gameId}`}
+          />
 
           {/* Scrollable player list */}
           <div className="player-list-container">
