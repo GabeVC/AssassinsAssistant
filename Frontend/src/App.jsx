@@ -7,6 +7,7 @@ import LandingPage from './components/LandingPage';
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
 import HomePage from './components/HomePage';
+import ProfilePage from './components/Profile';
 import JoinGame from './components/JoinGame';
 import ProtectedRoute from './components/ProtectedRoute';
 import GamePage from './components/GamePage';
@@ -34,6 +35,14 @@ const App = () => {
           element={
             <ProtectedRoute user={user}>
               <HomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="//profile"
+          element={
+            <ProtectedRoute user={user}>
+              <ProfilePage />
             </ProtectedRoute>
           }
         />
