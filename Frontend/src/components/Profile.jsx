@@ -1,12 +1,32 @@
-import { React, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext'
+import { React, useEffect ,useState} from 'react';
+import { useAuth } from '../context/AuthContext';
+import { auth, db } from '../firebaseConfig';
+import { doc, getDoc, onSnapshot, updateDoc, collection, where, query, getDocs } from 'firebase/firestore';
 import { Link, useNavigate } from 'react-router-dom';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading} = useAuth();
+  const [loading2, setLoading2] = useState(true);
+  const [currUser, setCurrUser] = useState(null);
 
-  if (loading) return <p>Loading...</p>;
+  useEffect(() => {
+  const fetchUserData = async () => {
+    try {
+      if (loading) return <p>Loading...</p>;
+        const userRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userRef);
+            const userInfo = userDoc.data();
+            setCurrUser(userInfo);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    } finally {
+      setLoading2(false);
+    }
+  }
+
+  fetchUserData();
+}, [user]);
 
   // I was trying to figure out how to extract info but idk
   {/*useEffect(() => {
@@ -26,6 +46,7 @@ const ProfilePage = () => {
   }, [user]);*/}
 
   // username and created don't work
+  if (loading2) return <p>Loading profile details...</p>;
   return (
     <div className="profile-page">
       <button className="back-button" onClick={() => navigate('/')}>
@@ -36,10 +57,10 @@ const ProfilePage = () => {
         <h2>Profile Information</h2>
       </header>
       <main>
-        <p>Created: {user.createdAt}</p>
-        <p>Email: {user.email}</p>
+        <p>Created: {new Date(currUser.createdAt.seconds * 1000).toLocaleString()}</p>
+        <p>Email: {currUser.email}</p>
         <p>UserID: {user.uid}</p>
-        <p>Username: {user.username}</p>
+        <p>Username: {currUser.username}</p>
       </main>
     </div>
   );
