@@ -37,9 +37,23 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-        <Route path="/games/:gameId" element={<GamePage />} />
+        <Route 
+          path="/games/:gameId" 
+          element={
+            <ProtectedRoute user={user}>
+              <GamePage />
+            </ProtectedRoute>
+          } 
+        />
         <Route path="/join/:gameId?" element={<JoinGame />} />
-        <Route path="/gamefeed/:gameId" element={<GameFeed />} />
+        <Route 
+          path="/gamefeed/:gameId" 
+          element={
+            <ProtectedRoute user={user}>
+              <GameFeed /> 
+            </ProtectedRoute>
+          } 
+        />
       </Routes>
       </AuthProvider>
     </div>

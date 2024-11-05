@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { db } from '../firebaseConfig';
+import { auth, db } from '../firebaseConfig';
 import { Link, useNavigate } from 'react-router-dom';
 import { doc, getDoc, onSnapshot, updateDoc, collection, where, query, getDocs } from 'firebase/firestore';
 import GameSettings from './GameSettings';
