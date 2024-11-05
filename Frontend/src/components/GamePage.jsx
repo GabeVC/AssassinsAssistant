@@ -117,10 +117,10 @@ const GamePage = () => {
         <>
           <h2>{gameData.title}</h2>
           <p><strong>Your Role:</strong> {isAdmin ? 'Admin' : 'Player'}</p>
-          <p><strong>Status:</strong> {gameData.isActive ? 'Active' : 'Inactive'}</p>
-          <p><strong>Players Remaining:</strong> {gameData.playerIds.length}</p>
-          <p><strong>Your Target:</strong> {userTargetName}</p> 
+          <p><strong>Game Status:</strong> {gameData.isActive ? 'Active' : 'Inactive'}</p>
+          <p><strong>Your Status:</strong> See Player List</p>
           <p><strong>Players Remaining:</strong> {numLivingPlayers}</p>
+          <p><strong>Your Target:</strong> {userTargetName}</p> 
           {/*<p><strong>Rules:</strong> {gameData.rules}</p>*/}
 
           <div className="navigation-buttons"> 
