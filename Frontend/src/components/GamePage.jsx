@@ -16,7 +16,7 @@ const GamePage = () => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false); 
   const [showInfo, setShowInfo] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showSettings, setShowSettings] = useState(false); 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
@@ -94,6 +94,10 @@ const GamePage = () => {
 
   return (
     <div className="game-details">
+      <button className="back-button" onClick={() => navigate('/')}>
+        Back to Home
+      </button>
+      
       {gameData ? (
         <>
           <h2>{gameData.title}</h2>
@@ -102,6 +106,7 @@ const GamePage = () => {
           <p><strong>Players Remaining:</strong> {gameData.playerIds.length}</p>
           {/*<p><strong>Rules:</strong> {gameData.rules}</p>*/}
 
+          <div className="navigation-buttons"> 
           {/* Admin Settings Page */}
           {isAdmin && gameData.isActive && (
             <div><button onClick={openModal}>Make an Announcement</button><CreateAnnouncement isOpen={isModalOpen} onClose={closeModal} gameId={gameId}/></div>
@@ -126,6 +131,13 @@ const GamePage = () => {
 
           <button onClick={() => navigate(`/gamefeed/${gameId}`)}>Game Feed</button>
 
+          {/* Button to show the info block */}
+          <button onClick={() => setShowInfo(true)} className="info-button">
+            Show Rules
+          </button>
+
+          </div>
+
           {/* Scrollable player list */}
           <div className="player-list-container">
             <h3>Players</h3>
@@ -139,10 +151,7 @@ const GamePage = () => {
             </div>
           </div>
 
-          {/* Button to show the info block */}
-          <button onClick={() => setShowInfo(true)} className="info-button">
-            Show Rules
-          </button>
+          
 
           {/* Dismissible info block */}
           {showInfo && (
