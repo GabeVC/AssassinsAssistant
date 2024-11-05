@@ -14,6 +14,7 @@ const GamePage = () => {
   const { gameId } = useParams();
   const [gameData, setGameData] = useState(null);
   const [players, setPlayers] = useState([]);
+  const [currentPlayer, setCurrentPlayer] = useState(null);
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false); 
@@ -72,6 +73,7 @@ const GamePage = () => {
 
           const userId = auth.currentUser.uid
           const currentUser = playerList.find(player => player.userId === userId);
+          setCurrentPlayer(currentUser);
           if (currentUser) {
             const targetPlayer = playerList.find(player => player.id === currentUser.targetId);
             setUserTargetName(targetPlayer ? targetPlayer.playerName : 'No target assigned');
@@ -118,7 +120,7 @@ const GamePage = () => {
           <h2>{gameData.title}</h2>
           <p><strong>Your Role:</strong> {isAdmin ? 'Admin' : 'Player'}</p>
           <p><strong>Game Status:</strong> {gameData.isActive ? 'Active' : 'Inactive'}</p>
-          <p><strong>Your Status:</strong> See Player List</p>
+          <p><strong>Your Status:</strong> {currentPlayer.isAlive ? 'Alive' : 'Eliminated'}</p>
           <p><strong>Players Remaining:</strong> {numLivingPlayers}</p>
           <p><strong>Your Target:</strong> {userTargetName}</p> 
           {/*<p><strong>Rules:</strong> {gameData.rules}</p>*/}
