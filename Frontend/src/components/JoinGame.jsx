@@ -63,11 +63,13 @@ const JoinGame = () => {
       }
 
       await setDoc(playerRef, {
-        userId: user ? user.uid : null,
-        playerName: playerName.trim(),
+        playerId,
+        userId,
+        playerName,
         gameId,
-        isAlive: true,
-        isAdmin: false,
+        isAlive,
+        TargetId: '',
+        isAdmin,
       });
 
       await updateDoc(gameRef, {

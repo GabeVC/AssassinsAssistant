@@ -43,10 +43,13 @@ const JoinGameModal = ({ isOpen, onClose }) => {
   
       await setDoc(playerRef, {
         userId: user ? user.uid : null,
+        playerId,
         playerName,
         gameId: gameId.trim(),
         isAlive: true,
         isAdmin: false,
+        targetId: ''
+
       });
   
       await updateDoc(gameRef, {

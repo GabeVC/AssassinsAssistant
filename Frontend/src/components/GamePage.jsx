@@ -7,6 +7,7 @@ import GameSettings from './GameSettings';
 import CreateAnnouncement from './CreateAnnouncement';
 import {AnnouncementItem} from './GameFeed';
 import './GamePage.css'
+import { startGame } from '../../../Backend/controllers/gameController';
 
 const GamePage = () => {
   const { gameId } = useParams();
@@ -18,6 +19,7 @@ const GamePage = () => {
   const [showInfo, setShowInfo] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [userTargetName, setUserTargetName] = useState('');
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
   const navigate = useNavigate();
@@ -59,9 +61,13 @@ const GamePage = () => {
             setAnnouncements(sortedAnnouncements);
           });
 
-
-          const currentUser = playerList.find(player => player.isAdmin);
-          setIsAdmin(currentUser ? currentUser.isAdmin : false); 
+          const userId = auth.currentUser.uid
+          const currentUser = playerList.find(player => player.userId === userId);
+          if (currentUser) {
+            const targetPlayer = playerList.find(player => player.id === currentUser.targetId);
+            setUserTargetName(targetPlayer ? targetPlayer.playerName : 'No target assigned');
+            setIsAdmin(currentUser.isAdmin);
+          }
 
           return () => unsubscribe();
         } else {
@@ -82,9 +88,9 @@ const GamePage = () => {
 
   const handleBeginGame = async () => {
     try {
-      const gameRef = doc(db, 'games', gameId);
-      await updateDoc(gameRef, { isActive: true });
-      setGameData((prevData) => ({ ...prevData, isActive: true })); 
+      setGameData((prevData) => ({ ...prevData, isActive: true }));
+      await startGame(gameId);
+ 
     } catch (error) {
       console.error("Error starting the game:", error);
     }
@@ -100,6 +106,7 @@ const GamePage = () => {
           <p><strong>Your Role:</strong> {isAdmin ? 'Admin' : 'Player'}</p>
           <p><strong>Status:</strong> {gameData.isActive ? 'Active' : 'Inactive'}</p>
           <p><strong>Players Remaining:</strong> {gameData.playerIds.length}</p>
+          <p><strong>Your Target:</strong> {userTargetName}</p> 
           {/*<p><strong>Rules:</strong> {gameData.rules}</p>*/}
 
           {/* Admin Settings Page */}
