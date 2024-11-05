@@ -4,7 +4,7 @@ import { doc, setDoc, updateDoc, arrayUnion, runTransaction } from 'firebase/fir
 import { v4 as uuidv4 } from 'uuid';
 
 
-const EliminatePlayer = ({ isOpen, onClose, playerList }) => {
+const EliminatePlayer = ({ isOpen, onClose, playerList, gameId }) => {
     const allowedEvidenceTypes = ['image/jpeg', 'image/png'];
 
     const handleElimination = async () =>
@@ -30,24 +30,25 @@ const EliminatePlayer = ({ isOpen, onClose, playerList }) => {
                   
                   const userInfo = livingPlayers.find(player => 
                     player.userId == userId
-                  );
-                  
-                  const userIdx = livingPlayers.indexOf(userInfo);
-                  
-                  if (userIdx == -1) {
-                      throw new Error("Failed to find index of current user");
-                    }
-                    
-                    const victimIdx = (userIdx + 1) % livingPlayers.length;
-                    const victimId = livingPlayers[victimIdx].id;
-                    
-                    const playerRef = doc(db, 'players', victimId);
-                    
+                );
+                
+                const userIdx = livingPlayers.indexOf(userInfo);
+                
+                if (userIdx == -1) {
+                    throw new Error("Failed to find index of current user");
+                }
+                
+                const victimIdx = (userIdx + 1) % livingPlayers.length;
+                const victimInfo = livingPlayers[victimIdx];
+                
+                const playerRef = doc(db, 'players', victimInfo.id);
+                
+                console.log("here");
                     // not sure how else to check if it exists already
                     const playerDoc = await transaction.get(playerRef);
                     
                     if (!playerDoc.exists) {
-                        throw new Error('Player with ID ${victimId} not found!');
+                        throw new Error(`Player with ID ${victimInfo.id} not found!`);
                     }
                     
                     transaction.update(playerRef, {isAlive : false});
@@ -56,8 +57,18 @@ const EliminatePlayer = ({ isOpen, onClose, playerList }) => {
                     const announcementId = uuidv4();
                     const announcementRef = doc(db, 'announcements', announcementId);
                     
-                //   if ()
+                    if (!announcementId) {
+                        alert("Failed to create announcement");
+                        throw new Error("Failed to create announcement");
+                    }
+                    transaction.set(announcementRef, {
+                        gameId,
+                        announcementId,
+                        content: `${userInfo.playerName} killed ${victimInfo.playerName}`,
+                        timestamp: new Date()
+                    });
                 });
+                console.log("Successfully eliminated player and issued announcement");
                 
     
               } catch (error) {

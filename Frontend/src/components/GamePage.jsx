@@ -159,7 +159,8 @@ const GamePage = () => {
           <EliminatePlayer 
               isOpen={showEvidenceModal}
               onClose={() => {setShowEvidenceModal(false)}}
-              playerList={players}/>
+              playerList={players}
+              gameId={gameId}/>
           
 
           {/* Button to show the info block */}
