@@ -7,6 +7,7 @@ import GameSettings from './GameSettings';
 import CreateAnnouncement from './CreateAnnouncement';
 import {AnnouncementItem} from './GameFeed';
 import './GamePage.css'
+import EliminatePlayer from './EliminatePlayer';
 
 const GamePage = () => {
   const { gameId } = useParams();
@@ -21,6 +22,8 @@ const GamePage = () => {
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
   const navigate = useNavigate();
+  const [numLivingPlayers, setLiving] = useState(players.length);
+  const [showEvidenceModal, setShowEvidenceModal] = useState(false);
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -41,6 +44,12 @@ const GamePage = () => {
             ...doc.data(),
           }));
           setPlayers(playerList);
+
+          // Filter further to the living players
+          // This is the list we care about for eliminations/target assignment
+          const numLiving = playerList.filter(p => p.isAlive).length;
+          setLiving(numLiving);
+          // should trigger a check in backend here to see if we have a winner 
 
           // Set up a listener for announcements
           const announcementsRef = collection(db, 'announcements');
@@ -75,7 +84,7 @@ const GamePage = () => {
     };
 
     fetchGameData();
-  }, [gameId]);
+  }, [gameId, numLivingPlayers]);
 
   const openSettings = () => setShowSettings(true);
   const closeSettings = () => setShowSettings(false);
@@ -99,7 +108,7 @@ const GamePage = () => {
           <h2>{gameData.title}</h2>
           <p><strong>Your Role:</strong> {isAdmin ? 'Admin' : 'Player'}</p>
           <p><strong>Status:</strong> {gameData.isActive ? 'Active' : 'Inactive'}</p>
-          <p><strong>Players Remaining:</strong> {gameData.playerIds.length}</p>
+          <p><strong>Players Remaining:</strong> {numLivingPlayers}</p>
           {/*<p><strong>Rules:</strong> {gameData.rules}</p>*/}
 
           {/* Admin Settings Page */}
@@ -112,6 +121,7 @@ const GamePage = () => {
               Settings
             </button>
           )}
+
           {/* Begin Game Button */}
           {isAdmin && !gameData.isActive && (
             <div><button onClick={handleBeginGame} className="begin-game-button">
@@ -138,6 +148,19 @@ const GamePage = () => {
               ))}
             </div>
           </div>
+          
+          {/* Kill player button */}
+          {gameData.isActive &&
+             (<button onClick={() => {setShowEvidenceModal(true)}}>
+              Eliminate Target</button>
+          )}
+
+          {/* Popup to hold the evidence submission form */}
+          <EliminatePlayer 
+              isOpen={showEvidenceModal}
+              onClose={() => {setShowEvidenceModal(false)}}
+              playerList={players}/>
+          
 
           {/* Button to show the info block */}
           <button onClick={() => setShowInfo(true)} className="info-button">
@@ -169,7 +192,8 @@ const GamePage = () => {
             </div>
           </div>
         </>
-      ) : (
+      
+    ) : (
         <p>Game not found.</p>
       )}
     </div>
