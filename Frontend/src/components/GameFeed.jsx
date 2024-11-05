@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebaseConfig';
 import { useParams } from 'react-router-dom';
 import { doc, getDoc, deleteDoc, updateDoc,collection, onSnapshot,where, query,getDocs} from 'firebase/firestore';
@@ -55,6 +56,8 @@ const GameFeed = () => {
     const [announcements, setAnnouncements] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false); 
+    const navigate = useNavigate();
+    
     useEffect(() => {
       const fetchGameData = async () => {
         try {
@@ -114,6 +117,9 @@ const GameFeed = () => {
   
     return (
       <div className="game-details">
+        <button className="back-button" onClick={() => navigate('/')}>
+        Back to Home
+      </button>
         {gameData ? (
           <>
             <h2>{gameData.title} Feed</h2>

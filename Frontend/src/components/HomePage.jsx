@@ -66,6 +66,8 @@ const HomePage = () => {
   }, [user]);
 
 return (
+
+
     <div className="home-page">
         <h1>Welcome to Assassins Assistant!</h1>
 
@@ -98,11 +100,13 @@ return (
         </div>
       </div>
   
-        
+      <div className="navigation-buttons"> 
         <button onClick={openCreateModal}>Create New Game</button>
         <button onClick={openJoinModal}>Join Game</button>
+        </div>
         <JoinGameModal isOpen={isJoinModalOpen} onClose={closeJoinModal} />
         <CreateGame isOpen={isCreateModalOpen} onClose={closeCreateModal} />
+        
     </div>
     );
 };
