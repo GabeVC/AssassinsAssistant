@@ -70,7 +70,7 @@ return (
 
     <div className="home-page">
         <h1>Welcome to Assassins Assistant!</h1>
-
+        
     
     <div className="navigation-buttons"> 
         <Link to="/profile">

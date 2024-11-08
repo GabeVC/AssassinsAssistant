@@ -49,9 +49,7 @@ const ProfilePage = () => {
   if (loading2) return <p>Loading profile details...</p>;
   return (
     <div className="profile-page">
-      <button className="back-button" onClick={() => navigate('/')}>
-        Back to Home
-      </button>
+
       <header>
         <h1>Assassins Assistant</h1>
         <h2>Profile Information</h2>

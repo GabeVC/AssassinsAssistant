@@ -6,7 +6,7 @@ import { doc, getDoc, onSnapshot, updateDoc, collection, where, query, getDocs }
 import GameSettings from './GameSettings';
 import CreateAnnouncement from './CreateAnnouncement';
 import {AnnouncementItem} from './GameFeed';
-import './GamePage.css'
+import './GamePage.css';
 import { startGame } from '../../../Backend/controllers/gameController';
 import EliminatePlayer from './EliminatePlayer';
 
@@ -111,9 +111,6 @@ const GamePage = () => {
 
   return (
     <div className="game-details">
-      <button className="back-button" onClick={() => navigate('/')}>
-        Back to Home
-      </button>
       
       {gameData ? (
         <>
