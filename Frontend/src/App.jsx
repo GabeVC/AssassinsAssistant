@@ -7,10 +7,13 @@ import LandingPage from './components/LandingPage';
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
 import HomePage from './components/HomePage';
+import ProfilePage from './components/Profile';
 import JoinGame from './components/JoinGame';
 import ProtectedRoute from './components/ProtectedRoute';
 import GamePage from './components/GamePage';
-import GameFeed from './components/GameFeed'
+import GameFeed from './components/GameFeed';
+import Navbar from './components/Navbar';
+
 
 const App = () => {
   const [user, setUser] = useState(null);
@@ -25,7 +28,8 @@ const App = () => {
   return (
     <div className="App">
       <AuthProvider>
-        <Routes>
+        <Navbar /> 
+          <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -37,7 +41,15 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-          <Route 
+          <Route
+          path="//profile"
+          element={
+            <ProtectedRoute user={user}>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route 
             path="/games/:gameId" 
             element={
               <ProtectedRoute user={user}>

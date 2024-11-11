@@ -6,13 +6,15 @@ import { doc, getDoc, onSnapshot, updateDoc, collection, where, query, getDocs }
 import GameSettings from './GameSettings';
 import CreateAnnouncement from './CreateAnnouncement';
 import {AnnouncementItem} from './GameFeed';
-import './GamePage.css'
+import './GamePage.css';
 import { startGame } from '../../../Backend/controllers/gameController';
+import EliminatePlayer from './EliminatePlayer';
 
 const GamePage = () => {
   const { gameId } = useParams();
   const [gameData, setGameData] = useState(null);
   const [players, setPlayers] = useState([]);
+  const [currentPlayer, setCurrentPlayer] = useState(null);
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false); 
@@ -23,6 +25,8 @@ const GamePage = () => {
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
   const navigate = useNavigate();
+  const [numLivingPlayers, setLiving] = useState(players.length);
+  const [showEvidenceModal, setShowEvidenceModal] = useState(false);
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -44,6 +48,12 @@ const GamePage = () => {
           }));
           setPlayers(playerList);
 
+          // Filter further to the living players
+          // This is the list we care about for eliminations/target assignment
+          const numLiving = playerList.filter(p => p.isAlive).length;
+          setLiving(numLiving);
+          // should trigger a check in backend here to see if we have a winner 
+
           // Set up a listener for announcements
           const announcementsRef = collection(db, 'announcements');
           const announcementQuery = query(announcementsRef, where('gameId', '==', gameId));
@@ -63,6 +73,7 @@ const GamePage = () => {
 
           const userId = auth.currentUser.uid
           const currentUser = playerList.find(player => player.userId === userId);
+          setCurrentPlayer(currentUser);
           if (currentUser) {
             const targetPlayer = playerList.find(player => player.id === currentUser.targetId);
             setUserTargetName(targetPlayer ? targetPlayer.playerName : 'No target assigned');
@@ -81,7 +92,7 @@ const GamePage = () => {
     };
 
     fetchGameData();
-  }, [gameId]);
+  }, [gameId, numLivingPlayers]);
 
   const openSettings = () => setShowSettings(true);
   const closeSettings = () => setShowSettings(false);
@@ -100,16 +111,14 @@ const GamePage = () => {
 
   return (
     <div className="game-details">
-      <button className="back-button" onClick={() => navigate('/')}>
-        Back to Home
-      </button>
       
       {gameData ? (
         <>
           <h2>{gameData.title}</h2>
           <p><strong>Your Role:</strong> {isAdmin ? 'Admin' : 'Player'}</p>
-          <p><strong>Status:</strong> {gameData.isActive ? 'Active' : 'Inactive'}</p>
-          <p><strong>Players Remaining:</strong> {gameData.playerIds.length}</p>
+          <p><strong>Game Status:</strong> {gameData.isActive ? 'Active' : 'Inactive'}</p>
+          <p><strong>Your Status:</strong> {currentPlayer.isAlive ? 'Alive' : 'Eliminated'}</p>
+          <p><strong>Players Remaining:</strong> {numLivingPlayers}</p>
           <p><strong>Your Target:</strong> {userTargetName}</p> 
           {/*<p><strong>Rules:</strong> {gameData.rules}</p>*/}
 
@@ -124,6 +133,7 @@ const GamePage = () => {
               Settings
             </button>
           )}
+
           {/* Begin Game Button */}
           {isAdmin && !gameData.isActive && (
             <div><button onClick={handleBeginGame} className="begin-game-button">
@@ -157,6 +167,20 @@ const GamePage = () => {
               ))}
             </div>
           </div>
+          
+          {/* Kill player button */}
+          {gameData.isActive &&
+             (<button onClick={() => {setShowEvidenceModal(true)}}>
+              Eliminate Target</button>
+          )}
+
+          {/* Popup to hold the evidence submission form */}
+          <EliminatePlayer 
+              isOpen={showEvidenceModal}
+              onClose={() => {setShowEvidenceModal(false)}}
+              playerList={players}
+              gameId={gameId}/>
+          
 
           
 
@@ -185,7 +209,8 @@ const GamePage = () => {
             </div>
           </div>
         </>
-      ) : (
+      
+    ) : (
         <p>Game not found.</p>
       )}
     </div>
