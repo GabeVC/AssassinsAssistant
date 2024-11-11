@@ -25,36 +25,36 @@ const App = () => {
   return (
     <div className="App">
       <AuthProvider>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route
-          path="/home"
-          element={
-            <ProtectedRoute user={user}>
-              <HomePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route 
-          path="/games/:gameId" 
-          element={
-            <ProtectedRoute user={user}>
-              <GamePage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route path="/join/:gameId?" element={<JoinGame />} />
-        <Route 
-          path="/gamefeed/:gameId" 
-          element={
-            <ProtectedRoute user={user}>
-              <GameFeed /> 
-            </ProtectedRoute>
-          } 
-        />
-      </Routes>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/home"
+            element={
+              <ProtectedRoute user={user}>
+                <HomePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route 
+            path="/games/:gameId" 
+            element={
+              <ProtectedRoute user={user}>
+                <GamePage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route path="/join/:gameId?" element={<JoinGame />} />
+          <Route 
+            path="/gamefeed/:gameId" 
+            element={
+              <ProtectedRoute user={user}>
+                <GameFeed /> 
+              </ProtectedRoute>
+            } 
+          />
+        </Routes>
       </AuthProvider>
     </div>
   );

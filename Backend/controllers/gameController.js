@@ -5,13 +5,16 @@ import { v4 as uuidv4 } from 'uuid';
 export const assignTargets = async (gameId) => {
   try {
     const playersRef = collection(db, 'players');
-    const playerQuery = query(playersRef, where('gameId', '==', gameId));
+    const playerQuery = query(
+      playersRef,
+      where('gameId', '==', gameId),
+      where('isAlive', '==', true)  
+    );
     const playerSnapshot = await getDocs(playerQuery);
     const playerList = playerSnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
-
     // Shuffle players
     playerList.sort(() => Math.random() - 0.5);
 

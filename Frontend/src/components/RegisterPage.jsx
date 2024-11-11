@@ -21,8 +21,6 @@ const RegisterPage = () => {
         const queryParams = new URLSearchParams(location.search);
         const redirect = queryParams.get('redirect');
         const [path, gameId] = redirect.split('/');
-        console.log('Path:', path); 
-        console.log('Game ID:', gameId);
         await setDoc(doc(db, 'users', user.uid), {
             userId: user.uid,
             username: username,
