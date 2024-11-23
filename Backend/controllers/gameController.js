@@ -2,6 +2,12 @@ import { collection, doc, query, where, getDocs, updateDoc, arrayUnion } from 'f
 import { db } from '../../Frontend/src/firebaseConfig'; 
 import { v4 as uuidv4 } from 'uuid';
 
+/**
+ * Handles assigning players their targets in the specific game
+ * 
+ * @param {string} gameId - The corresponding game's ID
+ * @returns {Promise<void>} assigns players their targets in the specific game
+ */
 export const assignTargets = async (gameId) => {
   try {
     const playersRef = collection(db, 'players');
@@ -34,6 +40,12 @@ export const assignTargets = async (gameId) => {
   }
 };
 
+/**
+ * Starts any specific game
+ * 
+ * @param {string} gameId - The corresponding game's ID
+ * @returns {Promise<void>} Starts the specific game for all players.
+ */
 export const startGame = async (gameId) => {
   try {
     const gameRef = doc(db, 'games', gameId);
