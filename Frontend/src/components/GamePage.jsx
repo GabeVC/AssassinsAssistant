@@ -7,8 +7,10 @@ import GameSettings from './GameSettings';
 import CreateAnnouncement from './CreateAnnouncement';
 import {AnnouncementItem} from './GameFeed';
 import './GamePage.css';
+import AdminDashboard from './adminDashboard';
 import { startGame } from '../../../Backend/controllers/gameController';
 import EliminatePlayer from './EliminatePlayer';
+import DisputeForm from './DisputeForm';
 
 const GamePage = () => {
   const { gameId } = useParams();
@@ -22,11 +24,11 @@ const GamePage = () => {
   const [showSettings, setShowSettings] = useState(false); 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [userTargetName, setUserTargetName] = useState('');
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
+  const [showAdminDashboard, setShowAdminDashboard] = useState(false);
   const navigate = useNavigate();
   const [numLivingPlayers, setLiving] = useState(players.length);
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
+  const [showDisputeForm, setShowDisputeForm] = useState(false);
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -38,7 +40,6 @@ const GamePage = () => {
           const gameInfo = gameDoc.data();
           setGameData(gameInfo);
 
-
           const playersRef = collection(db, 'players');
           const playerQuery = query(playersRef, where('gameId', '==', gameId));
           const playerSnapshot = await getDocs(playerQuery);
@@ -48,13 +49,11 @@ const GamePage = () => {
           }));
           setPlayers(playerList);
 
-          // Filter further to the living players
-          // This is the list we care about for eliminations/target assignment
+          // Calculate living players
           const numLiving = playerList.filter(p => p.isAlive).length;
           setLiving(numLiving);
-          // should trigger a check in backend here to see if we have a winner 
 
-          // Set up a listener for announcements
+          // Set up announcements listener
           const announcementsRef = collection(db, 'announcements');
           const announcementQuery = query(announcementsRef, where('gameId', '==', gameId));
           const unsubscribe = onSnapshot(announcementQuery, (snapshot) => {
@@ -63,21 +62,42 @@ const GamePage = () => {
               ...doc.data(),
             }));
 
-            // Sort announcements by timestamp (assuming timestamp is a Firestore Timestamp)
             const sortedAnnouncements = announcementList.sort((a, b) => {
-              return b.timestamp.seconds - a.timestamp.seconds; // Sort in descending order
+              return b.timestamp.seconds - a.timestamp.seconds;
             });
 
             setAnnouncements(sortedAnnouncements);
           });
 
-          const userId = auth.currentUser.uid
+          // Get current user and process their data
+          const userId = auth.currentUser.uid;
           const currentUser = playerList.find(player => player.userId === userId);
-          setCurrentPlayer(currentUser);
+          
           if (currentUser) {
+            // Get the latest elimination attempt if it exists
+            const eliminationAttempts = currentUser.eliminationAttempts || [];
+            const latestAttempt = eliminationAttempts.length > 0 
+              ? eliminationAttempts[eliminationAttempts.length - 1]
+              : null;
+
+            // Set current player with all necessary fields
+            setCurrentPlayer({
+              ...currentUser,
+              latestAttempt,
+              canDispute: currentUser.isPending && latestAttempt && !latestAttempt.dispute
+            });
+
+            // Set target info
             const targetPlayer = playerList.find(player => player.id === currentUser.targetId);
             setUserTargetName(targetPlayer ? targetPlayer.playerName : 'No target assigned');
             setIsAdmin(currentUser.isAdmin);
+
+            // Log for debugging
+            console.log("Current User Data:", {
+              isPending: currentUser.isPending,
+              latestAttempt,
+              canDispute: currentUser.isPending && latestAttempt && !latestAttempt.dispute
+            });
           }
 
           return () => unsubscribe();
@@ -111,106 +131,136 @@ const GamePage = () => {
 
   return (
     <div className="game-details">
-      
       {gameData ? (
         <>
-          <h2>{gameData.title}</h2>
-          <p><strong>Your Role:</strong> {isAdmin ? 'Admin' : 'Player'}</p>
-          <p><strong>Game Status:</strong> {gameData.isActive ? 'Active' : 'Inactive'}</p>
-          <p><strong>Your Status:</strong> {currentPlayer.isAlive ? 'Alive' : 'Eliminated'}</p>
-          <p><strong>Players Remaining:</strong> {numLivingPlayers}</p>
-          <p><strong>Your Target:</strong> {userTargetName}</p> 
-          {/*<p><strong>Rules:</strong> {gameData.rules}</p>*/}
-
-          <div className="navigation-buttons"> 
-          {/* Admin Settings Page */}
-          {isAdmin && gameData.isActive && (
-            <div><button onClick={openModal}>Make an Announcement</button><CreateAnnouncement isOpen={isModalOpen} onClose={closeModal} gameId={gameId}/></div>
-          )}
-
           {isAdmin && (
-            <button onClick={openSettings} className="settings-button">
-              Settings
-            </button>
-          )}
-
-          {/* Begin Game Button */}
-          {isAdmin && !gameData.isActive && (
-            <div><button onClick={handleBeginGame} className="begin-game-button">
-              Begin Game
-            </button></div>
-          )}
-          <GameSettings
-            isOpen={showSettings}
-            onClose={closeSettings}
-            inviteLink={`${window.location.origin}/join/${gameId}`}
-          />
-
-          <button onClick={() => navigate(`/gamefeed/${gameId}`)}>Game Feed</button>
-
-          {/* Button to show the info block */}
-          <button onClick={() => setShowInfo(true)} className="info-button">
-            Show Rules
-          </button>
-
-          </div>
-
-          {/* Scrollable player list */}
-          <div className="player-list-container">
-            <h3>Players</h3>
-            <div className="player-list">
-              {players.map((player) => (
-                <div key={player.id} className="player">
-                  <p><strong>Name:</strong> {player.playerName}</p>
-                  <p><strong>Status:</strong> {player.isAlive ? 'Alive' : 'Eliminated'}</p>
-                </div>
-              ))}
+            <div className="admin-controls">
+              <button 
+                onClick={() => setShowAdminDashboard(!showAdminDashboard)}
+                className="admin-toggle-button"
+              >
+                {showAdminDashboard ? 'Show Game View' : 'Show Admin Dashboard'}
+              </button>
             </div>
-          </div>
-          
-          {/* Kill player button */}
-          {gameData.isActive &&
-             (<button onClick={() => {setShowEvidenceModal(true)}}>
-              Eliminate Target</button>
           )}
 
-          {/* Popup to hold the evidence submission form */}
-          <EliminatePlayer 
-              isOpen={showEvidenceModal}
-              onClose={() => {setShowEvidenceModal(false)}}
-              playerList={players}
-              gameId={gameId}/>
-          
+          {showAdminDashboard && isAdmin ? (
+            <AdminDashboard gameId={gameId} />
+          ) : (
+            <>
+              <h2>{gameData.title}</h2>
+              <p><strong>Your Role:</strong> {isAdmin ? 'Admin' : 'Player'}</p>
+              <p><strong>Game Status:</strong> {gameData.isActive ? 'Active' : 'Inactive'}</p>
+              <p><strong>Your Status:</strong> {currentPlayer.isAlive ? 'Alive' : 'Eliminated'}</p>
+              <p><strong>Players Remaining:</strong> {numLivingPlayers}</p>
+              <p><strong>Your Target:</strong> {userTargetName}</p>
 
-          
+              <div className="navigation-buttons">
+                {isAdmin && gameData.isActive && (
+                  <div>
+                    <button onClick={() => setIsModalOpen(true)}>Make an Announcement</button>
+                    <CreateAnnouncement 
+                      isOpen={isModalOpen} 
+                      onClose={() => setIsModalOpen(false)} 
+                      gameId={gameId}
+                    />
+                  </div>
+                )}
 
-          {/* Dismissible info block */}
-          {showInfo && (
-            <div className="modal-overlay">
-              <div className="modal-content">
-                <button onClick={() => setShowInfo(false)} className="close-button">
-                  &times;
+                {isAdmin && (
+                  <button onClick={() => setShowSettings(true)} className="settings-button">
+                    Settings
+                  </button>
+                )}
+
+                {isAdmin && !gameData.isActive && (
+                  <button onClick={handleBeginGame} className="begin-game-button">
+                    Begin Game
+                  </button>
+                )}
+
+                <GameSettings
+                  isOpen={showSettings}
+                  onClose={() => setShowSettings(false)}
+                  inviteLink={`${window.location.origin}/join/${gameId}`}
+                />
+
+                <button onClick={() => navigate(`/gamefeed/${gameId}`)}>Game Feed</button>
+                <button onClick={() => setShowInfo(true)} className="info-button">
+                  Show Rules
                 </button>
-                <h2>Rules</h2>
-                <p>{gameData.rules}</p>
               </div>
-            </div>
-          )}
 
-          {/* Scrollable player list */}
-          <div className="player-list-container" >
-            <h3>Announcements</h3>
-            <div className="player-list">
-              {announcements.map((announcement) => (
-                <div key={announcement.id}>
-                <AnnouncementItem announcement={announcement}  isAdmin={isAdmin}/>
-            </div>
-              ))}
-            </div>
-          </div>
+              <div className="player-list-container">
+                <h3>Players</h3>
+                <div className="player-list">
+                  {players.map((player) => (
+                    <div key={player.id} className="player">
+                      <p><strong>Name:</strong> {player.playerName}</p>
+                      <p><strong>Status:</strong> {player.isAlive ? 'Alive' : 'Eliminated'}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {gameData.isActive && (
+                <button onClick={() => setShowEvidenceModal(true)}>
+                  Eliminate Target
+                </button>
+              )}
+
+              <EliminatePlayer 
+                isOpen={showEvidenceModal}
+                onClose={() => setShowEvidenceModal(false)}
+                playerList={players}
+                gameId={gameId}
+              />
+
+              {showInfo && (
+                <div className="modal-overlay">
+                  <div className="modal-content">
+                    <button onClick={() => setShowInfo(false)} className="close-button">
+                      &times;
+                    </button>
+                    <h2>Rules</h2>
+                    <p>{gameData.rules}</p>
+                  </div>
+                </div>
+              )}
+              {currentPlayer && currentPlayer.isPending && currentPlayer.canDispute && (
+                <div className="dispute-section">
+                  <p className="pending-message">Your elimination is pending review</p>
+                  <button 
+                    className="dispute-button"
+                    onClick={() => setShowDisputeForm(true)}
+                  >
+                    Submit Dispute
+                  </button>
+                </div>
+              )}
+
+              {showDisputeForm && currentPlayer && currentPlayer.latestAttempt && (
+                <DisputeForm 
+                  playerId={currentPlayer.id}
+                  eliminationAttemptId={currentPlayer.latestAttempt.id}
+                  onClose={() => setShowDisputeForm(false)}
+                />
+              )}
+
+              <div className="player-list-container">
+                <h3>Announcements</h3>
+                <div className="player-list">
+                  {announcements.map((announcement) => (
+                    <div key={announcement.id}>
+                      <AnnouncementItem announcement={announcement} isAdmin={isAdmin}/>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </>
-      
-    ) : (
+      ) : (
         <p>Game not found.</p>
       )}
     </div>

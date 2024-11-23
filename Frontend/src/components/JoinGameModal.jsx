@@ -48,7 +48,8 @@ const JoinGameModal = ({ isOpen, onClose }) => {
         gameId: gameId.trim(),
         isAlive: true,
         isAdmin: false,
-        targetId: ''
+        targetId: '',
+        isPendingReview: ''
 
       });
   

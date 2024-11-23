@@ -50,6 +50,7 @@ const JoinGame = () => {
       
 
       const user = auth.currentUser;
+      const userId = user.uid;
       const playersRef = collection(db, 'players');
       const playerQuery = query(playersRef, where('gameId', '==', gameId));
       const playerSnapshot = await getDocs(playerQuery);
@@ -67,9 +68,10 @@ const JoinGame = () => {
         userId,
         playerName,
         gameId,
-        isAlive,
+        isAlive: true,
+        isPendingReview: false, 
         TargetId: '',
-        isAdmin,
+        isAdmin: false,
       });
 
       await updateDoc(gameRef, {

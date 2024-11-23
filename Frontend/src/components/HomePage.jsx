@@ -49,7 +49,8 @@ const HomePage = () => {
               id: gameDoc.id, 
               ...gameDoc.data(), 
               playerStatus: playerData.isAlive ? 'Alive' : 'Eliminated', 
-              isAdmin: playerData.isAdmin 
+              isAdmin: playerData.isAdmin ,
+              pendingDispute: playerData.isPendingReview,
             });
           }
         }
@@ -91,6 +92,7 @@ return (
                 <p><strong>Players Remaining:</strong> {game.playerIds.length}</p>
                 <p><strong>Your Role:</strong> {game.isAdmin ? 'Admin' : 'Player'}</p>
                 <p><strong>Your Status:</strong> {game.playerStatus}</p>
+
                 <button onClick={() => navigate(`/games/${game.id}`)}>View Game</button>
               </div>
             ))
