@@ -4,6 +4,13 @@ import './JoinGameModal.css';
 import { db, auth } from '../firebaseConfig';
 import { v4 as uuidv4 } from 'uuid';
 
+/**
+ * This component handles creating the join game window.
+ * 
+ * @param {Boolean} isOpen - Whether the join game window is open or not
+ * @param {Function} onClose - What function gets called when the join game window is closed
+ * @returns {React.JSX.Element} A React element that displays the join game window
+ */
 const JoinGameModal = ({ isOpen, onClose }) => {
   const [gameId, setGameId] = useState('');
   const [playerName, setPlayerName] = useState('');

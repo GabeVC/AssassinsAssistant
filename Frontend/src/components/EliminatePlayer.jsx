@@ -3,7 +3,15 @@ import { auth, db } from '../firebaseConfig';
 import { doc, setDoc, updateDoc, arrayUnion, runTransaction } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 
-
+/**
+ * This component handles the creation of the eliminate player window
+ * 
+ * @param {Boolean} isOpen - Whether the eliminate player window is open or not
+ * @param {Function} onClose - What function gets called when the eliminate player window is closed
+ * @param {List} playerList - The list of players for this particular game.
+ * @param {String} gameId - The ID for this particular game.
+ * @returns {React.JSX.Element} A React element that displays the eliminate player window
+ */
 const EliminatePlayer = ({ isOpen, onClose, playerList, gameId }) => {
     const allowedEvidenceTypes = ['image/jpeg', 'image/png'];
 

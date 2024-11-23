@@ -2,6 +2,11 @@ import { React, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext'
 
+/**
+ * This component handles the landing page when you first get to the site
+ * 
+ * @returns {JSX.Element} A JSX element that prompts the user to login or register
+ */
 const LandingPage = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();

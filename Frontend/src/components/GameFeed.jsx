@@ -8,6 +8,13 @@ import { faPencilAlt, faTrash } from '@fortawesome/free-solid-svg-icons';
 import './GamePage.css';
 import './GameFeed.css';
 
+/**
+ * This component handles announcments and editing them.
+ * 
+ * @param {String} announcement - The contents of the announcement
+ * @param {Boolean} isAdmin - Whether the client is the admin or not
+ * @returns {React.JSX.Element} A React element that contains the announcment and some edit functionality.
+ */
 const AnnouncementItem = ({ announcement, isAdmin }) => {
 
     const { id, content, timestamp } = announcement;
@@ -49,6 +56,12 @@ const AnnouncementItem = ({ announcement, isAdmin }) => {
     );
 };
 
+
+/**
+ * This component handles displaying AnnouncementItem components
+ * 
+ * @returns {React.JSX.Element} A React element that displays all the AnnouncementItem components
+ */
 const GameFeed = () => {
     const { gameId } = useParams();
     const [gameData, setGameData] = useState(null);

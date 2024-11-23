@@ -14,7 +14,11 @@ import GamePage from './components/GamePage';
 import GameFeed from './components/GameFeed';
 import Navbar from './components/Navbar';
 
-
+/**
+ * The application itself
+ * 
+ * @returns {React.JSX.Element} The rest of the application.
+ */
 const App = () => {
   const [user, setUser] = useState(null);
 

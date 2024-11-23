@@ -3,6 +3,12 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 import { useNavigate, useLocation } from 'react-router-dom';
 
+
+/**
+ * This component handles creating the login page
+ * 
+ * @returns {React.JSX.Element} A React element that displays the login page
+ */
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

@@ -3,6 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import './Navbar.css';
 
+/**
+ * This component handles the navigation bar
+ * 
+ * @returns {React.JSX.Element} A React element that allows users to return to the previous page
+ */
 const Navbar = () => {
     const navigate = useNavigate();
   return (

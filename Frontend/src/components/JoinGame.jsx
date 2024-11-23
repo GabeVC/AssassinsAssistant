@@ -5,7 +5,11 @@ import { auth, db } from '../firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import { v4 as uuidv4 } from 'uuid';
 
-
+/**
+ * This component handles joining and already existing game
+ * 
+ * @returns {React.JSX.Element} A react element used for joining an existing game.
+ */
 const JoinGame = () => {
   const { gameId } = useParams(); // Extract gameId from the URL
   const [playerName, setPlayerName] = useState('');
