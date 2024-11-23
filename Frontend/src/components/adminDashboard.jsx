@@ -2,6 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../firebaseConfig';
 import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 
+/**
+ * This component handles the creation of the admin page
+ * 
+ * @param {string} gameId - The corresponding game's ID
+ * @returns {React.JSX.Element} A React element that displays the admin page
+ */
 const AdminDashboard = ({ gameId }) => {
     const [pendingKills, setPendingKills] = useState([]);
     const [error, setError] = useState(null);

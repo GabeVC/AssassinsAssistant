@@ -3,6 +3,15 @@ import { doc, updateDoc, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import './PlayerList.css';
 
+/**
+ * This component handles the creation of the remove player window
+ * 
+ * @param {Boolean} isOpen - If the window is open or not
+ * @param {Function} onClose - The function called when this winow is closed
+ * @param {Function} onConfirm - The function called when the player removal is confirmed
+ * @param {String} playerName - The name of the player being removed
+ * @returns {React.JSX.Element} A React element that displays the remove player window
+ */
 const RemovePlayerModal = ({ isOpen, onClose, onConfirm, playerName }) => {
   if (!isOpen) return null;
 
@@ -25,6 +34,14 @@ const RemovePlayerModal = ({ isOpen, onClose, onConfirm, playerName }) => {
   );
 };
 
+/**
+ * This component handles the creation of the player list
+ * 
+ * @param {List} players - The players of the corresponding game
+ * @param {String} gameId - The ID of the corresponding game
+ * @param {Boolean} isAdmin - Whether the user is the game's admin or not
+ * @returns {React.JSX.Element} A List containing all players in a game
+ */
 const PlayerList = ({ players, gameId, isAdmin }) => {
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);

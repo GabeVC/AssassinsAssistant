@@ -2,6 +2,13 @@ import React, { useState } from 'react';
 import { db } from '../firebaseConfig';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 
+/**
+ * This component handles the creation of the dispute form window
+ * 
+ * @param {String} playerId - The eliminated person's ID
+ * @param {String} eliminationAttemptId - The eliminatation's ID
+ * @returns {React.JSX.Element} A React element that displays the dispute form window
+ */
 const DisputeForm = ({ playerId, eliminationAttemptId, onClose }) => {
     const [disputeText, setDisputeText] = useState('');
     const [error, setError] = useState(null);

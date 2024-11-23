@@ -5,6 +5,14 @@ import { v4 as uuidv4 } from 'uuid';
 const allowedEvidenceTypes = ['image/jpeg', 'image/png', 'video/mp4'];
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB to accommodate videos
 
+/**
+ * Handles uploading evidence to the data source (Firebase)
+ * 
+ * @param {File} file - The file uploaded
+ * @param {string} gameId - The corresponding game's ID
+ * @param {string} playerId - The corresponding player's ID
+ * @returns {Promise<any>} Uploads evidence to the data source (Firebase)
+ */
 async function uploadEvidence(file, gameId, playerId) {
     if (!file) return null;
     
@@ -30,6 +38,14 @@ async function uploadEvidence(file, gameId, playerId) {
     }
 }
 
+/**
+ * Handles eliminating a player from a specific game
+ * 
+ * @param {List} playerList - A list containing all of the game's players
+ * @param {string} gameId - The corresponding game's ID
+ * @param {File} file - The file uploaded  for evidence of elimination
+ * @returns {Promise} Eliminates a target player from the corresponding game
+ */
 export const handleElimination = async (playerList, gameId, file) => {
     // Basic validations
     const livingPlayers = playerList.filter(p => p.isAlive);
