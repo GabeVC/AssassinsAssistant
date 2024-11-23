@@ -11,6 +11,7 @@ import AdminDashboard from './adminDashboard';
 import { startGame } from '../../../Backend/controllers/gameController';
 import EliminatePlayer from './EliminatePlayer';
 import DisputeForm from './DisputeForm';
+import PlayerList from './PlayerList';
 
 /**
  * This component handles displaying and containing all elements of the game page
@@ -196,17 +197,11 @@ const GamePage = () => {
                 </button>
               </div>
 
-              <div className="player-list-container">
-                <h3>Players</h3>
-                <div className="player-list">
-                  {players.map((player) => (
-                    <div key={player.id} className="player">
-                      <p><strong>Name:</strong> {player.playerName}</p>
-                      <p><strong>Status:</strong> {player.isAlive ? 'Alive' : 'Eliminated'}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <PlayerList 
+                players={players} 
+                gameId={gameId}
+                isAdmin={isAdmin}
+              />
 
               {gameData.isActive && (
                 <button onClick={() => setShowEvidenceModal(true)}>
