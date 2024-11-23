@@ -4,6 +4,11 @@ import { auth, db } from '../firebaseConfig';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
+/**
+ * This component handles creating the registration page
+ * 
+ * @returns {React.JSX.Element} A React element that displays the registration page
+ */
 const RegisterPage = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');

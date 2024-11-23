@@ -4,6 +4,13 @@ import { doc, setDoc, updateDoc, arrayUnion, runTransaction } from 'firebase/fir
 import { v4 as uuidv4 } from 'uuid';
 import './CreateGame.css';
 
+/**
+ * This component handles the creation of a game
+ * 
+ * @param {boolean} isOpen - Whether the game creation window is open or not
+ * @param {Function} onClose - What function gets called when the game creation window is closed
+ * @returns {React.JSX.Element} A React element that displays the game creation window
+ */
 const CreateGame = ({ isOpen, onClose }) => {
   const [title, setTitle] = useState('');
   const [rules, setRules] = useState('');

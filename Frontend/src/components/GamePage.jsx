@@ -12,6 +12,11 @@ import { startGame } from '../../../Backend/controllers/gameController';
 import EliminatePlayer from './EliminatePlayer';
 import DisputeForm from './DisputeForm';
 
+/**
+ * This component handles displaying and containing all elements of the game page
+ * 
+ * @returns {React.JSX.Element} A React element that displays an interactive game page
+ */
 const GamePage = () => {
   const { gameId } = useParams();
   const [gameData, setGameData] = useState(null);

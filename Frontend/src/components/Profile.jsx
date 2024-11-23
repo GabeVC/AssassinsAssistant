@@ -4,6 +4,11 @@ import { auth, db } from '../firebaseConfig';
 import { doc, getDoc, onSnapshot, updateDoc, collection, where, query, getDocs } from 'firebase/firestore';
 import { Link, useNavigate } from 'react-router-dom';
 
+/**
+ * This component handles the profile page for the user
+ * 
+ * @returns {JSX.Element} A JSX element that displays the profile page for the user
+ */
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { user, loading} = useAuth();

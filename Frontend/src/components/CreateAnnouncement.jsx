@@ -4,6 +4,14 @@ import { doc, setDoc, updateDoc, arrayUnion, runTransaction } from 'firebase/fir
 import { v4 as uuidv4 } from 'uuid';
 import './CreateGame.css';
 
+/**
+ * This component handles the creation of an announcement
+ * 
+ * @param {boolean} isOpen - Whether the announcement window is open or not
+ * @param {Function} onClose - What function gets called when the announcement window is closed
+ * @param {string} gameId - The corresponding game's ID
+ * @returns {React.JSX.Element} A React element that displays the announcement window.
+ */
 const CreateAnnouncement = ({ isOpen, onClose, gameId }) => {
   const [content, setContent] = useState('');
 

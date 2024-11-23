@@ -8,6 +8,12 @@ export const useAuth = () => {
   return useContext(AuthContext);
 };
 
+/**
+ * This component handles providing the rest of the application with the authentication status of the current user
+ * 
+ * @param {Component} children - The children components the application is trying to display
+ * @returns {React.JSX.Element} A React element that displays children to authenticated users.
+ */
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);

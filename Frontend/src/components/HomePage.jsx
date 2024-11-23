@@ -8,6 +8,11 @@ import JoinGameModal from './JoinGameModal';
 import JoinGame from './JoinGame';
 import './HomePage.css';
 
+/**
+ * This component creates and displays the interactive home page
+ * 
+ * @returns {JSX.Element} A JSX element which renders the interactive home page
+ */
 const HomePage = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
