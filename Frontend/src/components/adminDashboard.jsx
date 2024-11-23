@@ -1,60 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../firebaseConfig';
-import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { fetchPendingKills, verifyKill, rejectKill } from '../../../Backend/controllers/playerController';
 
 const AdminDashboard = ({ gameId }) => {
     const [pendingKills, setPendingKills] = useState([]);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchPendingKills();
-    }, [gameId]);
-
-    const fetchPendingKills = async () => {
+    const loadPendingKills = async () => {
         try {
             setLoading(true);
-            const playersRef = collection(db, 'players');
-            const pendingQuery = query(
-                playersRef, 
-                where('gameId', '==', gameId),
-                where('isPending', '==', true)
-            );
-            
-            const querySnapshot = await getDocs(pendingQuery);
-            const kills = querySnapshot.docs.map(doc => {
-                const playerData = doc.data();
-                const latestAttempt = playerData.eliminationAttempts?.[playerData.eliminationAttempts.length - 1] || {};
-                
-                return {
-                    id: doc.id,
-                    ...playerData,
-                    evidenceUrl: latestAttempt.evidenceUrl,
-                    dispute: latestAttempt.dispute,
-                    disputeTimestamp: latestAttempt.disputeTimestamp,
-                    eliminationAttemptId: latestAttempt.id
-                };
-            });
-            
+            const kills = await fetchPendingKills(gameId);
             setPendingKills(kills);
             setError(null);
         } catch (err) {
-            console.error("Error fetching pending kills:", err);
+            console.error("Error loading pending kills:", err);
             setError("Failed to load pending kills. Please try again.");
         } finally {
             setLoading(false);
         }
     };
 
-    const verifyKill = async (playerId, eliminationAttemptId) => {
+    useEffect(() => {
+        loadPendingKills();
+    }, [gameId]);
+
+    const handleVerifyKill = async (playerId) => {
         try {
-            const playerRef = doc(db, 'players', playerId);
-            await updateDoc(playerRef, { 
-                isPending: false,
-                isAlive: false,
-                verifiedAt: new Date()
-            });
-            
+            await verifyKill(playerId);
             setPendingKills(prevKills => prevKills.filter(kill => kill.id !== playerId));
         } catch (error) {
             console.error("Error verifying kill:", error);
@@ -62,14 +34,9 @@ const AdminDashboard = ({ gameId }) => {
         }
     };
 
-    const rejectKill = async (playerId) => {
+    const handleRejectKill = async (playerId) => {
         try {
-            const playerRef = doc(db, 'players', playerId);
-            await updateDoc(playerRef, { 
-                isPending: false,
-                evidenceUrl: null
-            });
-            
+            await rejectKill(playerId);
             setPendingKills(prevKills => prevKills.filter(kill => kill.id !== playerId));
         } catch (error) {
             console.error("Error rejecting kill:", error);
@@ -122,7 +89,6 @@ const AdminDashboard = ({ gameId }) => {
                                     </div>
                                 )}
 
-                                {/* Display dispute if it exists */}
                                 {player.dispute && (
                                     <div className="dispute-container">
                                         <h4>Player Dispute:</h4>
@@ -137,13 +103,13 @@ const AdminDashboard = ({ gameId }) => {
                             <div className="kill-card-footer">
                                 <button 
                                     className="reject-button"
-                                    onClick={() => rejectKill(player.id)}
+                                    onClick={() => handleRejectKill(player.id)}
                                 >
                                     Reject
                                 </button>
                                 <button 
                                     className="verify-button"
-                                    onClick={() => verifyKill(player.id)}
+                                    onClick={() => handleVerifyKill(player.id)}
                                 >
                                     Verify Kill
                                 </button>

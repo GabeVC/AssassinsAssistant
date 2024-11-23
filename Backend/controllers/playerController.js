@@ -1,6 +1,15 @@
-import { doc, runTransaction } from 'firebase/firestore';
+import { 
+    doc, 
+    runTransaction, 
+    updateDoc, 
+    collection, 
+    query, 
+    where, 
+    getDocs,
+    getDoc 
+} from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { auth, db, storage } from '../../Frontend/src/firebaseConfig'; 
+import { db } from '../../Frontend/src/firebaseConfig'; 
 import { v4 as uuidv4 } from 'uuid';
 const allowedEvidenceTypes = ['image/jpeg', 'image/png', 'video/mp4'];
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB to accommodate videos
@@ -102,6 +111,65 @@ export const handleElimination = async (playerList, gameId, file) => {
         
     } catch (error) {
         console.error("Error in submitting elimination:", error);
+        throw error;
+    }
+};
+export const fetchPendingKills = async (gameId) => {
+    try {
+        const playersRef = collection(db, 'players');
+        const pendingQuery = query(
+            playersRef, 
+            where('gameId', '==', gameId),
+            where('isPending', '==', true)
+        );
+        
+        const querySnapshot = await getDocs(pendingQuery);
+        const kills = querySnapshot.docs.map(doc => {
+            const playerData = doc.data();
+            const latestAttempt = playerData.eliminationAttempts?.[playerData.eliminationAttempts.length - 1] || {};
+            
+            return {
+                id: doc.id,
+                ...playerData,
+                evidenceUrl: latestAttempt.evidenceUrl,
+                dispute: latestAttempt.dispute,
+                disputeTimestamp: latestAttempt.disputeTimestamp,
+                eliminationAttemptId: latestAttempt.id
+            };
+        });
+        
+        return kills;
+    } catch (error) {
+        console.error("Error fetching pending kills:", error);
+        throw error;
+    }
+};
+
+export const verifyKill = async (playerId) => {
+    try {
+        const playerRef = doc(db, 'players', playerId);
+        await updateDoc(playerRef, { 
+            isPending: false,
+            isAlive: false,
+            verifiedAt: new Date()
+        });
+        return true;
+    } catch (error) {
+        console.error("Error verifying kill:", error);
+        throw error;
+    }
+};
+
+export const rejectKill = async (playerId) => {
+    try {
+        const playerRef = doc(db, 'players', playerId);
+        await updateDoc(playerRef, { 
+            isPending: false,
+            evidenceUrl: null
+        });
+        return true;
+    } catch (error) {
+        console.error("Error rejecting kill:", error);
         throw error;
     }
 };
