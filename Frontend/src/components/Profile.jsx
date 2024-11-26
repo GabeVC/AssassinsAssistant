@@ -64,6 +64,7 @@ const ProfilePage = () => {
         <p>Email: {currUser.email}</p>
         <p>UserID: {user.uid}</p>
         <p>Username: {currUser.username}</p>
+        <p>Total Kills: {currUser.stats?.eliminations}</p>
       </main>
     </div>
   );

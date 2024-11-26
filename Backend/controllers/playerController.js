@@ -185,13 +185,35 @@ export const verifyKill = async (playerId) => {
         
         if (!killerSnapshot.empty) {
             const killerDoc = killerSnapshot.docs[0];
-            const killerRef = doc(db, 'players', killerDoc.id);
+            const killerData = killerDoc.data();
             
-            await updateDoc(killerRef, {
-                'eliminations': (killerDoc.data().eliminations || 0) + 1
+            await runTransaction(db, async (transaction) => {
+                // Get references
+                const killerRef = doc(db, 'players', killerDoc.id);
+                const userRef = doc(db, 'users', killerData.userId);
+                
+                // Get current data
+                const killerSnapshot = await transaction.get(killerRef);
+                const userSnapshot = await transaction.get(userRef);
+                
+                if (!killerSnapshot.exists() || !userSnapshot.exists()) {
+                    throw new Error("Required documents don't exist");
+                }
+        
+                // Get current elimination counts
+                const playerElims = killerSnapshot.data().eliminations || 0;
+                const userElims = userSnapshot.data().stats?.eliminations || 0;
+        
+                // Update both documents
+                transaction.update(killerRef, {
+                    'eliminations': playerElims + 1
+                });
+                
+                transaction.update(userRef, {
+                    'stats.eliminations': userElims + 1
+                });
             });
         }
-
         await updateDoc(playerRef, { 
             isPending: false,
             isAlive: false,
