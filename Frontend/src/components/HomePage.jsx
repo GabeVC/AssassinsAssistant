@@ -108,8 +108,8 @@ return (
       </div>
   
       <div className="navigation-buttons"> 
-        <button onClick={openCreateModal}>Create New Game</button>
-        <button onClick={openJoinModal}>Join Game</button>
+        <button onClick={openCreateModal}>Create Game</button>
+        <button onClick={openJoinModal}>‎ Join Game‎</button>
         </div>
         <JoinGameModal isOpen={isJoinModalOpen} onClose={closeJoinModal} />
         <CreateGame isOpen={isCreateModalOpen} onClose={closeCreateModal} />
