@@ -1,6 +1,12 @@
 import React from 'react';
 import './Leaderboard.css';
 
+/**
+ * This component handles displaying the leaderboard
+ * 
+ * @param {List} players - The players displayed on this leaderboard
+ * @returns {React.JSX.Element} A React element that displays the leaderboard
+ */
 const Leaderboard = ({ players }) => {
     // Sort players by eliminations
     const sortedPlayers = [...players].sort((a, b) => {
