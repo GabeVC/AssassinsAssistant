@@ -12,6 +12,9 @@ import { startGame } from '../../../Backend/controllers/gameController';
 import EliminatePlayer from './EliminatePlayer';
 import DisputeForm from './DisputeForm';
 import PlayerList from './PlayerList';
+import Leaderboard from './Leaderboard';
+
+
 
 /**
  * This component handles displaying and containing all elements of the game page
@@ -198,11 +201,13 @@ const GamePage = () => {
               </div>
 
               <PlayerList 
-                players={players} 
-                gameId={gameId}
-                isAdmin={isAdmin}
+                  players={players} 
+                  gameId={gameId}
+                  isAdmin={isAdmin}
               />
 
+              <Leaderboard players={players} />
+              
               {gameData.isActive && (
                 <button onClick={() => setShowEvidenceModal(true)}>
                   Eliminate Target

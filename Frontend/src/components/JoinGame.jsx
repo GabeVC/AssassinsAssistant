@@ -67,16 +67,22 @@ const JoinGame = () => {
         return;
       }
 
-      await setDoc(playerRef, {
-        playerId,
-        userId,
-        playerName,
-        gameId,
+      const playerData = {
+        id: playerId,           
+        userId: userId,
+        playerName: playerName,
+        gameId: gameId,
         isAlive: true,
-        isPendingReview: false, 
-        TargetId: '',
+        isPending: false,       
+        targetId: null,         
         isAdmin: false,
-      });
+        createdAt: new Date(),
+        lastUpdated: new Date(),
+        eliminationAttempts: [],              
+        eliminations: 0,
+      };
+
+      await setDoc(playerRef, playerData);
 
       await updateDoc(gameRef, {
         playerIds: arrayUnion(playerId),

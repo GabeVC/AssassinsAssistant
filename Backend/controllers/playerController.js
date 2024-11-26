@@ -9,7 +9,8 @@ import {
     getDoc 
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db } from '../../Frontend/src/firebaseConfig'; 
+import { db, auth, storage } from '../../Frontend/src/firebaseConfig'; 
+
 import { v4 as uuidv4 } from 'uuid';
 const allowedEvidenceTypes = ['image/jpeg', 'image/png', 'video/mp4'];
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB to accommodate videos
@@ -67,7 +68,6 @@ export const handleElimination = async (playerList, gameId, file) => {
         throw new Error("User is not authenticated!");
     }
 
-    // File validation
     if (file) {
         if (!allowedEvidenceTypes.includes(file.type)) {
             throw new Error("Invalid file type. Only JPEG, PNG images and MP4 videos are allowed.");
@@ -87,22 +87,22 @@ export const handleElimination = async (playerList, gameId, file) => {
         const victimIdx = (userIdx + 1) % livingPlayers.length;
         const victimInfo = livingPlayers[victimIdx];
         
-        // Upload evidence first if provided
         let evidenceUrl = null;
         if (file) {
             evidenceUrl = await uploadEvidence(file, gameId, victimInfo.id);
         }
 
-        // Create new elimination attempt
         const eliminationAttempt = {
             id: uuidv4(),
             timestamp: new Date(),
             evidenceUrl: evidenceUrl,
-            dispute: null,
-            disputeTimestamp: null
+            dispute: null,         
+            disputeTimestamp: null,
+            verifiedAt: null,      
+            status: 'pending',     
+            verifiedBy: null       
         };
 
-        // Update player document
         await runTransaction(db, async (transaction) => {
             const playerRef = doc(db, 'players', victimInfo.id);
             const playerDoc = await transaction.get(playerRef);
@@ -164,11 +164,40 @@ export const fetchPendingKills = async (gameId) => {
 export const verifyKill = async (playerId) => {
     try {
         const playerRef = doc(db, 'players', playerId);
+        const playerDoc = await getDoc(playerRef);
+        
+        if (!playerDoc.exists()) {
+            throw new Error('Player not found');
+        }
+
+        const playerData = playerDoc.data();
+        const attempts = playerData.eliminationAttempts || [];
+        const latestAttempt = attempts[attempts.length - 1];
+
+        const playersRef = collection(db, 'players');
+        const killerQuery = query(
+            playersRef, 
+            where('gameId', '==', playerData.gameId),
+            where('targetId', '==', playerId)
+        );
+        
+        const killerSnapshot = await getDocs(killerQuery);
+        
+        if (!killerSnapshot.empty) {
+            const killerDoc = killerSnapshot.docs[0];
+            const killerRef = doc(db, 'players', killerDoc.id);
+            
+            await updateDoc(killerRef, {
+                'eliminations': (killerDoc.data().eliminations || 0) + 1
+            });
+        }
+
         await updateDoc(playerRef, { 
             isPending: false,
             isAlive: false,
             verifiedAt: new Date()
         });
+
         return true;
     } catch (error) {
         console.error("Error verifying kill:", error);
