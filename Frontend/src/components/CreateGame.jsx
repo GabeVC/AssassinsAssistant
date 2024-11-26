@@ -72,6 +72,8 @@ const CreateGame = ({ isOpen, onClose }) => {
         setIsPlaying(false);
         onClose();
         alert('Game created successfully!');
+        window.location.reload();
+
       } catch (error) {
         console.error('Error creating game:', error);
         alert('Failed to create game. All changes have been rolled back.');

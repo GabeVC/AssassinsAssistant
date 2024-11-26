@@ -44,6 +44,7 @@ const AdminDashboard = ({ gameId }) => {
         try {
             await rejectKill(playerId);
             setPendingKills(prevKills => prevKills.filter(kill => kill.id !== playerId));
+            window.location.reload();
         } catch (error) {
             console.error("Error rejecting kill:", error);
             setError("Failed to reject kill. Please try again.");

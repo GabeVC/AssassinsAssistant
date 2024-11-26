@@ -89,6 +89,8 @@ const JoinGame = () => {
       });
 
       navigate('/home');
+      window.location.reload();
+
     } catch (error) {
       console.error("Error joining game:", error);
       setError('There was an issue joining the game. Please try again.');

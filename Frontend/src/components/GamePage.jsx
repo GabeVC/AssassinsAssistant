@@ -130,6 +130,8 @@ const GamePage = () => {
     try {
       setGameData((prevData) => ({ ...prevData, isActive: true }));
       await startGame(gameId);
+      window.location.reload();
+
  
     } catch (error) {
       console.error("Error starting the game:", error);
