@@ -1,8 +1,20 @@
-import React, { useState } from 'react';
-import { handleElimination } from '../../../Backend/controllers/playerController';
+import React, { useState } from "react";
+import { handleElimination } from "../../../Backend/controllers/playerController";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "./ui/dialog";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Upload } from "lucide-react";
+import { Button } from "./ui/button";
+
 /**
  * This component handles the creation of the eliminate player window
- * 
+ *
  * @param {Boolean} isOpen - Whether the eliminate player window is open or not
  * @param {Function} onClose - What function gets called when the eliminate player window is closed
  * @param {List} playerList - The list of players for this particular game.
@@ -10,39 +22,77 @@ import { handleElimination } from '../../../Backend/controllers/playerController
  * @returns {React.JSX.Element} A React element that displays the eliminate player window
  */
 const EliminatePlayer = ({ isOpen, onClose, playerList, gameId }) => {
-    const [file, setFile] = useState(null);
+  const [file, setFile] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
 
-    const handleFileChange = (e) => {
-        const selectedFile = e.target.files[0];
-        if (selectedFile) {
-            setFile(selectedFile);
-        }
-    };
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+    }
+  };
 
-    const submitElimination = async () => {
-        await handleElimination(playerList, gameId, file);
-        onClose(); // Close the modal after submission
-    };
+  const submitElimination = async () => {
+    await handleElimination(playerList, gameId, file);
+    onClose(); // Close the modal after submission
+  };
 
-    if (!isOpen) return null;
-
-    return (
-        <div className="modal-overlay">
-            <div className="modal-content">
-                <button onClick={onClose} className="close-button">
-                    &times;
-                </button>
-                <h2>Eliminate Target</h2>
-                <input
-                    type="file"
-                    id="fileInput"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                />
-                <button onClick={submitElimination}>Submit</button>
-            </div>
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-gray-800 text-white border-gray-700 sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Eliminate Target</DialogTitle>
+          <DialogDescription className="text-gray-400">
+            Upload evidence of your elimination
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div
+            className={`border-2 border-dashed rounded-lg p-8 text-center ${
+              isDragging
+                ? "border-blue-500 bg-blue-500/10"
+                : "border-gray-700 hover:border-gray-600"
+            }`}
+            onDragEnter={() => setIsDragging(true)}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragging(false);
+              const droppedFile = e.dataTransfer.files[0];
+              if (droppedFile?.type.startsWith("image/")) {
+                setFile(droppedFile);
+              }
+            }}
+            onDragOver={(e) => e.preventDefault()}
+          >
+            <Input
+              type="file"
+              id="fileInput"
+              accept="image/*"
+              onChange={(e) => setFile(e.target.files[0])}
+              className="hidden"
+            />
+            <Label
+              htmlFor="fileInput"
+              className="cursor-pointer flex flex-col items-center gap-2"
+            >
+              <Upload className="h-8 w-8 text-gray-400" />
+              <span className="text-sm text-gray-400">
+                {file ? file.name : "Click or drag to upload evidence"}
+              </span>
+            </Label>
+          </div>
+          <Button
+            onClick={submitElimination}
+            className="w-full bg-red-600 hover:bg-red-700"
+            disabled={!file}
+          >
+            Submit Elimination
+          </Button>
         </div>
-    );
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 export default EliminatePlayer;

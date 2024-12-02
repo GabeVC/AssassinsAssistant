@@ -1,103 +1,85 @@
-import React, { useState } from 'react';
-import { db } from '../firebaseConfig';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import React, { useState } from "react";
+import { db } from "../firebaseConfig";
+import { doc, updateDoc, getDoc } from "firebase/firestore";
 
 /**
  * This component handles the creation of the dispute form window
- * 
+ *
  * @param {String} playerId - The eliminated person's ID
  * @param {String} eliminationAttemptId - The eliminatation's ID
  * @returns {React.JSX.Element} A React element that displays the dispute form window
  */
 const DisputeForm = ({ playerId, eliminationAttemptId, onClose }) => {
-    const [disputeText, setDisputeText] = useState('');
-    const [error, setError] = useState(null);
-    const [success, setSuccess] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
+  const [disputeText, setDisputeText] = useState("");
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!disputeText.trim()) {
-            setError('Please enter a dispute explanation');
-            return;
-        }
+  return (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="bg-gray-800 text-white border-gray-700 sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Submit Dispute</DialogTitle>
+          <DialogDescription className="text-gray-400">
+            Explain why you believe the elimination was invalid
+          </DialogDescription>
+        </DialogHeader>
 
-        setSubmitting(true);
-        setError(null);
-        try {
-            const playerRef = doc(db, 'players', playerId);
-            const playerDoc = await getDoc(playerRef);
-            
-            if (!playerDoc.exists()) {
-                throw new Error('Player not found');
-            }
+        {error && (
+          <Alert variant="destructive" className="bg-red-900/50 border-red-800">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-            const attempts = playerDoc.data().eliminationAttempts || [];
-            const updatedAttempts = attempts.map(attempt => {
-                if (attempt.id === eliminationAttemptId) {
-                    return {
-                        ...attempt,
-                        dispute: disputeText,
-                        disputeTimestamp: new Date()
-                    };
-                }
-                return attempt;
-            });
-
-            await updateDoc(playerRef, {
-                eliminationAttempts: updatedAttempts
-            });
-            
-            setSuccess(true);
-            // Wait for 2 seconds to show success message before closing
-            setTimeout(() => {
-                onClose();
-            }, 2000);
-
-        } catch (error) {
-            console.error('Error submitting dispute:', error);
-            setError('Failed to submit dispute. Please try again.');
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    return (
-        <div className="dispute-form">
-            <h3>Submit Dispute</h3>
-            {error && <div className="error-message">{error}</div>}
-            {success ? (
-                <div className="success-message">
-                    Dispute successfully submitted!
-                </div>
-            ) : (
-                <form onSubmit={handleSubmit}>
-                    <textarea
-                        value={disputeText}
-                        onChange={(e) => setDisputeText(e.target.value)}
-                        placeholder="Explain why you believe you were not eliminated..."
-                        rows={4}
-                        maxLength={500}
-                    />
-                    <div className="button-container">
-                        <button 
-                            type="button" 
-                            onClick={onClose}
-                            disabled={submitting}
-                        >
-                            Cancel
-                        </button>
-                        <button 
-                            type="submit" 
-                            disabled={submitting}
-                        >
-                            {submitting ? 'Submitting...' : 'Submit Dispute'}
-                        </button>
-                    </div>
-                </form>
-            )}
-        </div>
-    );
+        {success ? (
+          <div className="text-center py-4">
+            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
+            <p className="text-green-400">Dispute successfully submitted!</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="dispute">Dispute Reason</Label>
+              <Textarea
+                id="dispute"
+                value={disputeText}
+                onChange={(e) => setDisputeText(e.target.value)}
+                placeholder="Explain why you believe you were not eliminated..."
+                className="bg-gray-900/50 border-gray-700 text-white min-h-[100px]"
+                required
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="border-gray-700 hover:bg-gray-700"
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700"
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                    Submitting...
+                  </div>
+                ) : (
+                  "Submit Dispute"
+                )}
+              </Button>
+            </div>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 export default DisputeForm;
