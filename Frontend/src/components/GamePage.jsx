@@ -309,13 +309,14 @@ const GamePage = () => {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {isAdmin && !gameData?.isActive && !gameData?.winner && (
-                    <Button
-                      className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold"
-                      onClick={handleBeginGame}
-                    >
-                      <PlayCircle className="mr-2 h-5 w-5" />
-                      Begin Game
-                    </Button>
+                    <Button 
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold"
+                    onClick={handleBeginGame}
+                    disabled={numLivingPlayers < 2}
+                  >
+                    Begin Game
+                  </Button>
+                  
                   )}
                   {isAdmin && gameData?.isActive && (
                     <Button
