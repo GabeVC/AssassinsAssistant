@@ -17,7 +17,7 @@ import { Shield, UserX, Award, Skull } from "lucide-react";
  * This component handles the creation of the remove player window
  *
  * @param {Boolean} isOpen - If the window is open or not
- * @param {Function} onClose - The function called when this winow is closed
+ * @param {Function} onClose - The function called when this window is closed
  * @param {Function} onConfirm - The function called when the player removal is confirmed
  * @param {String} playerName - The name of the player being removed
  * @returns {React.JSX.Element} A React element that displays the remove player window
@@ -101,21 +101,25 @@ const PlayerList = ({ players, gameId, isAdmin }) => {
         >
           <CardContent className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3">
-              {player.isAdmin ? (
-                <Shield className="h-5 w-5 text-blue-400" />
-              ) : player.isAlive ? (
+              {player.isAlive ? (
                 <Award className="h-5 w-5 text-green-400" />
               ) : (
                 <Skull className="h-5 w-5 text-red-400" />
               )}
               <div>
-                <p className="font-medium text-white">{player.playerName}</p>
+              <p className="font-medium text-white flex items-center gap-1">
+  {player.playerName}
+  {player.isAdmin && (
+    <Shield className="h-5 w-5 text-blue-400" />
+  )}
+</p>
+
                 <p className="text-sm text-gray-400">
-                  {player.isAdmin
-                    ? "Admin"
-                    : player.isAlive
+                  {player.isAlive
                     ? "Alive"
                     : "Eliminated"}
+                    {player.isAdmin
+                    && (" (Admin)")}
                 </p>
               </div>
             </div>
