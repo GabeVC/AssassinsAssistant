@@ -54,6 +54,7 @@ const AdminDashboard = ({ gameId }) => {
   }, [gameId]);
 
   const handleVerifyKill = async (playerId) => {
+    console.log(playerId);
     try {
       await verifyKill(playerId);
       setPendingKills((prevKills) =>

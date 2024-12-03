@@ -169,67 +169,80 @@ export const verifyKill = async (playerId) => {
     }
 
     try {
-        const playerRef = doc(db, 'players', playerId);
-        const playerDoc = await getDoc(playerRef);
-        
-        if (!playerDoc.exists()) {
-            return { success: false, message: 'Player not found' };
-        }
-
-        const playerData = playerDoc.data();
-        const attempts = playerData.eliminationAttempts || [];
-        const latestAttempt = attempts[attempts.length - 1];
-
-        if (!latestAttempt || latestAttempt.verified) {
-            return { success: false, message: 'No pending elimination attempt' };
-        }
-
-        // Find the killer (player who has this player as their target)
-        const playersRef = collection(db, 'players');
-        const killerQuery = query(
-            playersRef, 
-            where('gameId', '==', playerData.gameId),
-            where('targetId', '==', playerId),
-            where('isAlive', '==', true)
-        );
-        
-        const killerSnapshot = await getDocs(killerQuery);
-        
-        if (killerSnapshot.empty) {
-            return { success: false, message: 'No killer found' };
-        }
-
-        const killerDoc = killerSnapshot.docs[0];
-        const killerData = killerDoc.data();
-        
-        // Start the transaction
         await runTransaction(db, async (transaction) => {
-            // Get fresh references
-            const freshPlayerDoc = await transaction.get(playerRef);
-            const killerRef = doc(db, 'players', killerDoc.id);
-            const freshKillerDoc = await transaction.get(killerRef);
-            const userRef = doc(db, 'users', killerData.userId);
-            const userDoc = await transaction.get(userRef);
+            // STEP 1: Perform all reads first
+            const playerRef = doc(db, 'players', playerId);
+            const playerDoc = await transaction.get(playerRef);
             
-            if (!freshPlayerDoc.exists() || !freshKillerDoc.exists() || !userDoc.exists()) {
+            if (!playerDoc.exists()) {
+                throw new Error('Player not found');
+            }
+
+            const playerData = playerDoc.data();
+            const attempts = playerData.eliminationAttempts || [];
+            const latestAttempt = attempts[attempts.length - 1];
+
+            if (!latestAttempt || latestAttempt.verified) {
+                throw new Error('No pending elimination attempt');
+            }
+
+            // Find the killer
+            const playersRef = collection(db, 'players');
+            const killerQuery = query(
+                playersRef, 
+                where('gameId', '==', playerData.gameId),
+                where('targetId', '==', playerId),
+                where('isAlive', '==', true)
+            );
+            
+            const killerSnapshot = await getDocs(killerQuery);
+            
+            if (killerSnapshot.empty) {
+                throw new Error('No killer found');
+            }
+
+            const killerDoc = killerSnapshot.docs[0];
+            const killerData = killerDoc.data();
+            
+            // Get additional required documents
+            const killerRef = doc(db, 'players', killerDoc.id);
+            const userRef = doc(db, 'users', killerData.userId);
+            const gameRef = doc(db, 'games', playerData.gameId);
+
+            const [freshKillerDoc, userDoc, gameDoc] = await Promise.all([
+                transaction.get(killerRef),
+                transaction.get(userRef),
+                transaction.get(gameRef)
+            ]);
+
+            if (!freshKillerDoc.exists() || !userDoc.exists() || !gameDoc.exists()) {
                 throw new Error("Required documents don't exist");
             }
-    
-            // Update elimination counts
+
+            // Get remaining alive players count
+            const alivePlayersQuery = query(
+                playersRef,
+                where('gameId', '==', playerData.gameId),
+                where('isAlive', '==', true)
+            );
+            const alivePlayers = await getDocs(alivePlayersQuery);
+            const aliveCount = alivePlayers.size - 1; // Subtract 1 for the soon-to-be-eliminated player
+
+            // STEP 2: Perform all writes
+            // Update killer's stats
             const playerElims = freshKillerDoc.data().eliminations || 0;
             const userElims = userDoc.data().stats?.eliminations || 0;
-    
-            // Update the killer's stats
+            
             transaction.update(killerRef, {
-                eliminations: playerElims + 1
+                eliminations: playerElims + 1,
+                targetId: playerData.targetId // Update killer's target
             });
             
-            // Update the user's stats
             transaction.update(userRef, {
                 'stats.eliminations': userElims + 1
             });
 
-            // Mark the target as eliminated
+            // Update eliminated player
             const updatedAttempts = attempts.map((attempt, index) => {
                 if (index === attempts.length - 1) {
                     return {
@@ -247,9 +260,37 @@ export const verifyKill = async (playerId) => {
                 eliminationAttempts: updatedAttempts
             });
 
-            // Update the game state
-            if (playerData.gameId && killerDoc.id) {
-                await updateGame(playerData.gameId, killerDoc.id, playerId);
+            // Update game state if this was the final elimination
+            if (aliveCount <= 1) {
+                const gameData = gameDoc.data();
+                transaction.update(gameRef, {
+                    isActive: false,
+                    endTime: new Date(),
+                    winner: killerDoc.id,
+                    winnerName: killerData.playerName || 'Unknown',
+                    gameStatus: 'completed',
+                    eliminations: [...(gameData.eliminations || []), {
+                        killerId: killerDoc.id,
+                        killedPlayerId: playerId,
+                        timestamp: new Date()
+                    }]
+                });
+
+                // Update winner's stats
+                const currentStats = userDoc.data().stats || {};
+                transaction.update(userRef, {
+                    'stats.gamesWon': (currentStats.gamesWon || 0) + 1
+                });
+            } else {
+                // Just update eliminations history
+                const gameData = gameDoc.data();
+                transaction.update(gameRef, {
+                    eliminations: [...(gameData.eliminations || []), {
+                        killerId: killerDoc.id,
+                        killedPlayerId: playerId,
+                        timestamp: new Date()
+                    }]
+                });
             }
         });
 

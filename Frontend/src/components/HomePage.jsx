@@ -28,6 +28,8 @@ import {
   GamepadIcon,
   Target,
   Users,
+  AlertTriangle,
+  AlertCircle
 } from "lucide-react";
 
 /**
@@ -75,13 +77,30 @@ const HomePage = () => {
             where('isAlive', '==', true)
           );
           const alivePlayersSnapshot = await getDocs(alivePlayersQuery);
+    
+          // Get pending eliminations for this game
+          const pendingPlayersQuery = query(
+            collection(db, 'players'),
+            where('gameId', '==', playerData.gameId),
+            where('isPending', '==', true)
+          );
+          const pendingPlayersSnapshot = await getDocs(pendingPlayersQuery);
+    
+          // Check if current player has a pending elimination
+          const hasEliminationAttempt = playerData.isPending;
+          const canDispute = hasEliminationAttempt && 
+            playerData.eliminationAttempts?.length > 0 && 
+            !playerData.eliminationAttempts[playerData.eliminationAttempts.length - 1].dispute;
           
           return {
             id: gameDoc.id,
             ...gameDoc.data(),
             isAdmin: playerData.isAdmin,
             playerStatus: playerData.isAlive ? 'Alive' : 'Eliminated',
-            alivePlayers: alivePlayersSnapshot.size
+            alivePlayers: alivePlayersSnapshot.size,
+            hasEliminationAttempt,
+            canDispute,
+            pendingEliminations: pendingPlayersSnapshot.size,
           };
         });
         
@@ -183,10 +202,33 @@ const HomePage = () => {
                         <Target className="h-4 w-4" />
                         <span>Status: {game.playerStatus}</span>
                       </div>
+                      {game.isAdmin && game.pendingEliminations > 0 && (
+                        <div className="mt-2 p-2 bg-yellow-500/20 rounded-md flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                          <span className="text-yellow-500">
+                            {game.pendingEliminations} pending elimination{game.pendingEliminations !== 1 ? 's' : ''} to review
+                          </span>
+                        </div>
+                      )}
+                      {!game.isAdmin && game.hasEliminationAttempt && (
+                        <div className="mt-2 p-2 bg-red-500/20 rounded-md flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 text-red-500" />
+                          <div className="flex flex-col">
+                            <span className="text-red-500">Elimination attempt pending</span>
+                            {game.canDispute && (
+                              <span className="text-red-400 text-sm">Click to view and dispute</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                     <CardFooter>
                       <Button
-                        className="w-full bg-blue-600 hover:bg-blue-700"
+                        className={`w-full ${
+                          game.hasEliminationAttempt 
+                            ? "bg-red-600 hover:bg-red-700" 
+                            : "bg-blue-600 hover:bg-blue-700"
+                        }`}
                         onClick={() => navigate(`/games/${game.id}`)}
                       >
                         View Game
