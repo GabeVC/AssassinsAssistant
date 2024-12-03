@@ -48,26 +48,56 @@ export const assignTargets = async (gameId) => {
  */
 export const startGame = async (gameId) => {
   try {
-    const gameRef = doc(db, 'games', gameId);
-    await updateDoc(gameRef, { isActive: true });
-    await assignTargets(gameId);
-    console.log('Game started and targets assigned.');
+      await runTransaction(db, async (transaction) => {
+          // Get all players in the game
+          const playersRef = collection(db, 'players');
+          const playerQuery = query(playersRef, where('gameId', '==', gameId));
+          const playerSnapshot = await getDocs(playerQuery);
+          
+          if (playerSnapshot.empty) {
+              throw new Error('No players found in the game');
+          }
+
+          // Update game state
+          const gameRef = doc(db, 'games', gameId);
+          transaction.update(gameRef, { isActive: true });
+
+          // Update each player's user stats
+          const userUpdates = playerSnapshot.docs.map(async (playerDoc) => {
+              const userData = playerDoc.data();
+              if (!userData.userId) return;
+
+              const userRef = doc(db, 'users', userData.userId);
+              const userDoc = await transaction.get(userRef);
+
+              if (userDoc.exists()) {
+                  const currentStats = userDoc.data().stats || {};
+                  transaction.update(userRef, {
+                      'stats.gamesPlayed': (currentStats.gamesPlayed || 0) + 1
+                  });
+              }
+          });
+
+          await Promise.all(userUpdates);
+      });
+
+      // Assign targets after the transaction completes
+      await assignTargets(gameId);
+      console.log('Game started, targets assigned, and player stats updated.');
+
   } catch (error) {
-    console.error('Error starting the game:', error);
-    throw error;
+      console.error('Error starting the game:', error);
+      throw error;
   }
 };
-
 
 export const updateGame = async (gameId, killerId, killedPlayerId) => {
   try {
       await runTransaction(db, async (transaction) => {
-          // Get all relevant document references
           const gameRef = doc(db, 'games', gameId);
           const killerRef = doc(db, 'players', killerId);
           const killedPlayerRef = doc(db, 'players', killedPlayerId);
 
-          // Get current documents
           const [gameDoc, killerDoc, killedPlayerDoc] = await Promise.all([
               transaction.get(gameRef),
               transaction.get(killerRef),
@@ -80,20 +110,21 @@ export const updateGame = async (gameId, killerId, killedPlayerId) => {
 
           const killedPlayerData = killedPlayerDoc.data();
           const gameData = gameDoc.data();
+          const killerData = killerDoc.data();
 
-          // Get the killed player's target (this will be the killer's new target)
+          // Get the killed player's target
           const newTargetId = killedPlayerData.targetId;
 
           if (!newTargetId) {
               throw new Error('Killed player has no target ID');
           }
 
-          // Update killer's target to the killed player's target
+          // Update killer's target
           transaction.update(killerRef, {
               targetId: newTargetId
           });
 
-          // Get count of remaining alive players
+          // Check remaining players
           const playersRef = collection(db, 'players');
           const alivePlayersQuery = query(
               playersRef,
@@ -102,17 +133,31 @@ export const updateGame = async (gameId, killerId, killedPlayerId) => {
           );
           
           const alivePlayers = await getDocs(alivePlayersQuery);
-          const aliveCount = alivePlayers.size - 1; // Subtract 1 because the killed player is still counted as alive
+          const aliveCount = alivePlayers.size - 1; // Subtract 1 for the killed player
 
-          // If only one player remains (the killer), end the game
+          // If game is ending, update winner's stats
           if (aliveCount <= 1) {
+              // Update game state
               transaction.update(gameRef, {
                   isActive: false,
                   endTime: new Date(),
                   winner: killerId,
-                  winnerName: killerDoc.data().displayName || 'Unknown',
+                  winnerName: killerData.displayName || 'Unknown',
                   gameStatus: 'completed'
               });
+
+              // Update winner's stats
+              if (killerData.userId) {
+                  const userRef = doc(db, 'users', killerData.userId);
+                  const userDoc = await transaction.get(userRef);
+                  
+                  if (userDoc.exists()) {
+                      const currentStats = userDoc.data().stats || {};
+                      transaction.update(userRef, {
+                          'stats.gamesWon': (currentStats.gamesWon || 0) + 1
+                      });
+                  }
+              }
           }
 
           // Update elimination history
@@ -133,6 +178,6 @@ export const updateGame = async (gameId, killerId, killedPlayerId) => {
       };
   } catch (error) {
       console.error('Error updating game:', error);
-      throw error; // Let the calling function handle the error
+      throw error;
   }
 };
