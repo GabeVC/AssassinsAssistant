@@ -12,6 +12,7 @@ import {
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, auth, storage } from '../../Frontend/src/firebaseConfig'; 
 import { updateGame } from './gameController';
+import { createAnnouncement } from './feedController';
 
 import { v4 as uuidv4 } from 'uuid';
 const allowedEvidenceTypes = ['image/jpeg', 'image/png', 'video/mp4', 'video/mov'];
@@ -120,6 +121,8 @@ export const handleElimination = async (playerList, gameId, file) => {
                 eliminationAttempts: [...currentAttempts, eliminationAttempt]
             });
         });
+
+        
 
         return { 
             success: true, 
@@ -292,7 +295,11 @@ export const verifyKill = async (playerId) => {
                     }]
                 });
             }
+
+            await createAnnouncement(`${playerData.playerName} was eliminated!`, playerData.gameId);
         });
+
+        
 
         return { 
             success: true, 
