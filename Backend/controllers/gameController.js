@@ -49,7 +49,6 @@ export const assignTargets = async (gameId) => {
 export const startGame = async (gameId) => {
   try {
       await runTransaction(db, async (transaction) => {
-          // Get all players in the game
           const playersRef = collection(db, 'players');
           const playerQuery = query(playersRef, where('gameId', '==', gameId));
           const playerSnapshot = await getDocs(playerQuery);
@@ -58,30 +57,38 @@ export const startGame = async (gameId) => {
               throw new Error('No players found in the game');
           }
 
-          // Update game state
           const gameRef = doc(db, 'games', gameId);
+          const gameDoc = await transaction.get(gameRef);
+
+          if (!gameDoc.exists()) {
+              throw new Error('Game not found');
+          }
+
+          const userDocs = await Promise.all(
+              playerSnapshot.docs.map(async (playerDoc) => {
+                  const userData = playerDoc.data();
+                  if (!userData.userId) return null;
+                  const userRef = doc(db, 'users', userData.userId);
+                  return await transaction.get(userRef);
+              })
+          );
+
           transaction.update(gameRef, { isActive: true });
 
-          // Update each player's user stats
-          const userUpdates = playerSnapshot.docs.map(async (playerDoc) => {
+          playerSnapshot.docs.forEach((playerDoc, index) => {
               const userData = playerDoc.data();
-              if (!userData.userId) return;
-
-              const userRef = doc(db, 'users', userData.userId);
-              const userDoc = await transaction.get(userRef);
-
-              if (userDoc.exists()) {
+              const userDoc = userDocs[index];
+              
+              if (userDoc && userDoc.exists()) {
                   const currentStats = userDoc.data().stats || {};
-                  transaction.update(userRef, {
+                  transaction.update(doc(db, 'users', userData.userId), {
                       'stats.gamesPlayed': (currentStats.gamesPlayed || 0) + 1
                   });
               }
           });
-
-          await Promise.all(userUpdates);
       });
 
-      // Assign targets after the transaction completes
+      // Assign targets after transaction completes
       await assignTargets(gameId);
       console.log('Game started, targets assigned, and player stats updated.');
 

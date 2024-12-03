@@ -1,7 +1,7 @@
 import { React, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { db } from "../firebaseConfig";
+import { db, auth} from "../firebaseConfig";
 import {
   collection,
   query,
@@ -39,13 +39,10 @@ import {
 const HomePage = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);  // Added loading state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [games, setGames] = useState([]);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
-  const openCreateModal = () => setIsCreateModalOpen(true);
-  const closeCreateModal = () => setIsCreateModalOpen(false);
-  const openJoinModal = () => setIsJoinModalOpen(true);
-  const closeJoinModal = () => setIsJoinModalOpen(false);
 
   const handleLogout = async () => {
     try {
@@ -57,39 +54,48 @@ const HomePage = () => {
   };
 
   useEffect(() => {
-    const fetchGames = async (userId) => {
+    const fetchGames = async () => {
       try {
-        // Query the players collection to find entries with the user's ID
-        const playersRef = collection(db, "players");
-        const playerQuery = query(playersRef, where("userId", "==", userId));
+        const userId = auth.currentUser.uid;
+        const playersRef = collection(db, 'players');
+        const playerQuery = query(playersRef, where('userId', '==', userId));
         const playerSnapshot = await getDocs(playerQuery);
-
-        // Retrieve each associated game
-        const gamesList = [];
-        for (const playerDoc of playerSnapshot.docs) {
+        
+        const gamePromises = playerSnapshot.docs.map(async (playerDoc) => {
           const playerData = playerDoc.data();
-          const gameRef = doc(db, "games", playerData.gameId);
+          const gameRef = doc(db, 'games', playerData.gameId);
           const gameDoc = await getDoc(gameRef);
-
-          if (gameDoc.exists()) {
-            gamesList.push({
-              id: gameDoc.id,
-              ...gameDoc.data(),
-              playerStatus: playerData.isAlive ? "Alive" : "Eliminated",
-              isAdmin: playerData.isAdmin,
-              pendingDispute: playerData.isPendingReview,
-            });
-          }
-        }
-
-        setGames(gamesList);
+          
+          if (!gameDoc.exists()) return null;
+          
+          // Get alive players count
+          const alivePlayersQuery = query(
+            collection(db, 'players'),
+            where('gameId', '==', playerData.gameId),
+            where('isAlive', '==', true)
+          );
+          const alivePlayersSnapshot = await getDocs(alivePlayersQuery);
+          
+          return {
+            id: gameDoc.id,
+            ...gameDoc.data(),
+            isAdmin: playerData.isAdmin,
+            playerStatus: playerData.isAlive ? 'Alive' : 'Eliminated',
+            alivePlayers: alivePlayersSnapshot.size
+          };
+        });
+        
+        const gamesData = await Promise.all(gamePromises);
+        setGames(gamesData.filter(game => game !== null));
+        setLoading(false);
       } catch (error) {
-        console.error("Error fetching games:", error);
+        console.error('Error fetching games:', error);
+        setLoading(false);
       }
     };
 
     if (user) {
-      fetchGames(user.uid);
+      fetchGames();  // Removed uid parameter as it's not needed
     }
   }, [user]);
 
@@ -171,7 +177,7 @@ const HomePage = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         <Users className="h-4 w-4" />
-                        <span>{game.playerIds.length} Players Remaining</span>
+                        <span>{game.alivePlayers} Players Remaining</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Target className="h-4 w-4" />

@@ -85,11 +85,29 @@ const CreateGameModal = ({ isOpen, onClose }) => {
             TargetId: "",
             isAdmin,
           });
+        
 
           transaction.update(gameRef, {
             playerIds: arrayUnion(playerId),
           });
         }
+        else {
+          transaction.set(playerRef, {
+            playerId,
+            userId,
+            playerName,
+            gameId,
+            isAlive: false,
+            TargetId: "",
+            isAdmin,
+          });
+        
+
+          transaction.update(gameRef, {
+            playerIds: arrayUnion(playerId),
+          });
+        }
+
       });
 
       setPlayerName("");

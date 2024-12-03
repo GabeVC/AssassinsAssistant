@@ -189,7 +189,8 @@ export const verifyKill = async (playerId) => {
         const killerQuery = query(
             playersRef, 
             where('gameId', '==', playerData.gameId),
-            where('targetId', '==', playerId)
+            where('targetId', '==', playerId),
+            where('isAlive', '==', true)
         );
         
         const killerSnapshot = await getDocs(killerQuery);
