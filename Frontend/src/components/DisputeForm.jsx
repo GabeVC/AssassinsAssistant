@@ -1,6 +1,21 @@
 import React, { useState } from "react";
 import { db } from "../firebaseConfig";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "./ui/dialog";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Upload } from "lucide-react";
+import { Button } from "./ui/button";
+import { Textarea } from "./ui/textarea";
+import {
+  CheckCircle
+} from "lucide-react";
 
 /**
  * This component handles the creation of the dispute form window
@@ -15,6 +30,52 @@ const DisputeForm = ({ playerId, eliminationAttemptId, onClose }) => {
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!disputeText.trim()) {
+        setError('Please enter a dispute explanation');
+        return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    try {
+        const playerRef = doc(db, 'players', playerId);
+        const playerDoc = await getDoc(playerRef);
+
+        if (!playerDoc.exists()) {
+            throw new Error('Player not found');
+        }
+
+        const attempts = playerDoc.data().eliminationAttempts || [];
+        const updatedAttempts = attempts.map(attempt => {
+            if (attempt.id === eliminationAttemptId) {
+                return {
+                    ...attempt,
+                    dispute: disputeText,
+                    disputeTimestamp: new Date()
+                };
+            }
+            return attempt;
+        });
+
+        await updateDoc(playerRef, {
+            eliminationAttempts: updatedAttempts
+        });
+
+        setSuccess(true);
+        // Wait for 2 seconds to show success message before closing
+        setTimeout(() => {
+            onClose();
+        }, 2000);
+
+    } catch (error) {
+        console.error('Error submitting dispute:', error);
+        setError('Failed to submit dispute. Please try again.');
+    } finally {
+        setSubmitting(false);
+    }
+  };
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="bg-gray-800 text-white border-gray-700 sm:max-w-[425px]">
@@ -55,7 +116,7 @@ const DisputeForm = ({ playerId, eliminationAttemptId, onClose }) => {
                 type="button"
                 variant="outline"
                 onClick={onClose}
-                className="border-gray-700 hover:bg-gray-700"
+                className="border-gray-700 text-black hover:bg-gray-700"
                 disabled={submitting}
               >
                 Cancel

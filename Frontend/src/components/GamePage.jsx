@@ -34,6 +34,7 @@ import {
   Shield,
   Flag,
   MessageSquare,
+  Trophy
 } from "lucide-react";
 
 /**
@@ -149,6 +150,7 @@ const GamePage = () => {
     try {
       await startGame(gameId);
       setGameData((prev) => ({ ...prev, isActive: true }));
+      window.location.reload();
     } catch (error) {
       console.error("Error starting game:", error);
     }
@@ -258,17 +260,34 @@ const GamePage = () => {
                     <div className="flex items-center gap-2">
                       <div
                         className={`h-2 w-2 rounded-full ${
-                          gameData?.isActive ? "bg-green-500" : "bg-yellow-400"
+                          !gameData?.isActive && gameData?.winner
+                            ? "bg-purple-500"
+                            : gameData?.isActive
+                            ? "bg-green-500"
+                            : "bg-yellow-400"
                         }`}
                       />
                       <span>
-                        {gameData?.isActive ? "Active" : "Setup Phase"}
+                        {!gameData?.isActive && gameData?.winner
+                          ? "Game Complete"
+                          : gameData?.isActive
+                          ? "Active"
+                          : "Setup Phase"}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Users className="text-blue-400" />
-                      <span>{numLivingPlayers} Players Remaining</span>
-                    </div>
+                    {(!gameData?.isActive && gameData?.winner) ? (
+                      <div className="flex items-center gap-2">
+                        <Trophy className="text-yellow-400" />
+                        <span>
+                          Winner: {players.find(p => p.id === gameData.winner)?.playerName || 'Unknown Winner'}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Users className="text-blue-400" />
+                        <span>{numLivingPlayers} Players Remaining</span>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -289,7 +308,7 @@ const GamePage = () => {
                   )}
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {isAdmin && !gameData?.isActive && (
+                  {isAdmin && !gameData?.isActive && !gameData?.winner && (
                     <Button
                       className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold"
                       onClick={handleBeginGame}
@@ -394,13 +413,13 @@ const GamePage = () => {
 
             {/* Dispute Alert */}
             {currentPlayer?.canDispute && (
-              <Alert className="mt-4 bg-yellow-900/50 border-yellow-800">
+              <Alert className="mt-4 bg-red-500 border-red-800">
                 <Flag className="h-4 w-4" />
                 <AlertDescription className="flex justify-between items-center">
                   <span>Your elimination is pending review</span>
                   <Button
                     variant="outline"
-                    className="border-yellow-800 hover:bg-yellow-800"
+                    className="border-red-800 hover:bg-red-900"
                     onClick={() => setShowDisputeForm(true)}
                   >
                     Submit Dispute

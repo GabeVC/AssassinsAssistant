@@ -68,7 +68,7 @@ const EliminatePlayer = ({ isOpen, onClose, playerList, gameId }) => {
             <Input
               type="file"
               id="fileInput"
-              accept="image/*"
+              accept="image/*,video/*"
               onChange={(e) => setFile(e.target.files[0])}
               className="hidden"
             />

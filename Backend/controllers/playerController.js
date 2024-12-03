@@ -6,13 +6,15 @@ import {
     query, 
     where, 
     getDocs,
-    getDoc 
+    getDoc,
+    arrayUnion
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, auth, storage } from '../../Frontend/src/firebaseConfig'; 
+import { updateGame } from './gameController';
 
 import { v4 as uuidv4 } from 'uuid';
-const allowedEvidenceTypes = ['image/jpeg', 'image/png', 'video/mp4'];
+const allowedEvidenceTypes = ['image/jpeg', 'image/png', 'video/mp4', 'video/mov'];
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB to accommodate videos
 
 /**
@@ -162,18 +164,27 @@ export const fetchPendingKills = async (gameId) => {
 };
 
 export const verifyKill = async (playerId) => {
+    if (!playerId) {
+        return { success: false, message: 'Invalid player ID' };
+    }
+
     try {
         const playerRef = doc(db, 'players', playerId);
         const playerDoc = await getDoc(playerRef);
         
         if (!playerDoc.exists()) {
-            throw new Error('Player not found');
+            return { success: false, message: 'Player not found' };
         }
 
         const playerData = playerDoc.data();
         const attempts = playerData.eliminationAttempts || [];
         const latestAttempt = attempts[attempts.length - 1];
 
+        if (!latestAttempt || latestAttempt.verified) {
+            return { success: false, message: 'No pending elimination attempt' };
+        }
+
+        // Find the killer (player who has this player as their target)
         const playersRef = collection(db, 'players');
         const killerQuery = query(
             playersRef, 
@@ -183,56 +194,87 @@ export const verifyKill = async (playerId) => {
         
         const killerSnapshot = await getDocs(killerQuery);
         
-        if (!killerSnapshot.empty) {
-            const killerDoc = killerSnapshot.docs[0];
-            const killerData = killerDoc.data();
-            
-            await runTransaction(db, async (transaction) => {
-                // Get references
-                const killerRef = doc(db, 'players', killerDoc.id);
-                const userRef = doc(db, 'users', killerData.userId);
-                
-                // Get current data
-                const killerSnapshot = await transaction.get(killerRef);
-                const userSnapshot = await transaction.get(userRef);
-                
-                if (!killerSnapshot.exists() || !userSnapshot.exists()) {
-                    throw new Error("Required documents don't exist");
-                }
-        
-                // Get current elimination counts
-                const playerElims = killerSnapshot.data().eliminations || 0;
-                const userElims = userSnapshot.data().stats?.eliminations || 0;
-        
-                // Update both documents
-                transaction.update(killerRef, {
-                    'eliminations': playerElims + 1
-                });
-                
-                transaction.update(userRef, {
-                    'stats.eliminations': userElims + 1
-                });
-            });
+        if (killerSnapshot.empty) {
+            return { success: false, message: 'No killer found' };
         }
-        await updateDoc(playerRef, { 
-            isPending: false,
-            isAlive: false,
-            verifiedAt: new Date()
+
+        const killerDoc = killerSnapshot.docs[0];
+        const killerData = killerDoc.data();
+        
+        // Start the transaction
+        await runTransaction(db, async (transaction) => {
+            // Get fresh references
+            const freshPlayerDoc = await transaction.get(playerRef);
+            const killerRef = doc(db, 'players', killerDoc.id);
+            const freshKillerDoc = await transaction.get(killerRef);
+            const userRef = doc(db, 'users', killerData.userId);
+            const userDoc = await transaction.get(userRef);
+            
+            if (!freshPlayerDoc.exists() || !freshKillerDoc.exists() || !userDoc.exists()) {
+                throw new Error("Required documents don't exist");
+            }
+    
+            // Update elimination counts
+            const playerElims = freshKillerDoc.data().eliminations || 0;
+            const userElims = userDoc.data().stats?.eliminations || 0;
+    
+            // Update the killer's stats
+            transaction.update(killerRef, {
+                eliminations: playerElims + 1
+            });
+            
+            // Update the user's stats
+            transaction.update(userRef, {
+                'stats.eliminations': userElims + 1
+            });
+
+            // Mark the target as eliminated
+            const updatedAttempts = attempts.map((attempt, index) => {
+                if (index === attempts.length - 1) {
+                    return {
+                        ...attempt,
+                        verified: true,
+                        verifiedAt: new Date()
+                    };
+                }
+                return attempt;
+            });
+
+            transaction.update(playerRef, { 
+                isPending: false,
+                isAlive: false,
+                eliminationAttempts: updatedAttempts
+            });
+
+            // Update the game state
+            if (playerData.gameId && killerDoc.id) {
+                await updateGame(playerData.gameId, killerDoc.id, playerId);
+            }
         });
 
-        return true;
+        return { 
+            success: true, 
+            message: 'Kill verified successfully' 
+        };
+
     } catch (error) {
         console.error("Error verifying kill:", error);
-        throw error;
+        return {
+            success: false,
+            message: error.message
+        };
     }
 };
 
 export const rejectKill = async (playerId) => {
+    if (!playerId) {
+        return false;
+    }
+
     try {
         const playerRef = doc(db, 'players', playerId);
         await updateDoc(playerRef, { 
-            isPending: false,
-            evidenceUrl: null
+            isPending: false
         });
         return true;
     } catch (error) {

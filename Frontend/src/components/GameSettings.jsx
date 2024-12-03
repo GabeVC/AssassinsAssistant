@@ -48,7 +48,7 @@ const GameSettings = ({ isOpen, onClose, inviteLink }) => {
               />
               <Button
                 variant="outline"
-                className="border-gray-700 hover:bg-gray-700"
+                className="border-gray-700 text-black hover:bg-gray-700"
                 onClick={() => navigator.clipboard.writeText(inviteLink)}
               >
                 Copy

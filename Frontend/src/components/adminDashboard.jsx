@@ -59,6 +59,7 @@ const AdminDashboard = ({ gameId }) => {
       setPendingKills((prevKills) =>
         prevKills.filter((kill) => kill.id !== playerId)
       );
+      window.location.reload();
     } catch (error) {
       console.error("Error verifying kill:", error);
       setError("Failed to verify kill. Please try again.");

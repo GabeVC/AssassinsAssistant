@@ -11,8 +11,8 @@ import { Trophy, Medal } from "lucide-react";
 
 const Leaderboard = ({ players }) => {
   const sortedPlayers = [...players].sort((a, b) => {
-    const aElims = a.stats?.eliminations || 0;
-    const bElims = b.stats?.eliminations || 0;
+    const aElims = a.eliminations || 0;
+    const bElims = b.eliminations || 0;
     return bElims - aElims;
   });
 
@@ -61,7 +61,7 @@ const Leaderboard = ({ players }) => {
                 </span>
               </div>
               <span className="text-blue-400 font-medium">
-                {player.stats?.eliminations || 0} eliminations
+                {player.eliminations || 0} eliminations
               </span>
             </div>
           ))}
