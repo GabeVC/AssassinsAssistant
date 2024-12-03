@@ -39,6 +39,8 @@ const CreateGameModal = ({ isOpen, onClose }) => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const defaultRules = "(1) Everyone playing is assigned a target that only they know. (2) They must kill their target. (3) When killed, their target’s target become their own. (4) Goes until the last man standing.";
+
   const handleCreateGame = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -70,7 +72,7 @@ const CreateGameModal = ({ isOpen, onClose }) => {
           gameId,
           title,
           isActive,
-          rules: rules || "Default game rules",
+          rules: rules || defaultRules,
           playerIds: [],
           createdAt: new Date(),
         });
