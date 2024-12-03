@@ -54,7 +54,7 @@ const LandingPage = () => {
 
           <Card className="bg-gray-800/50 border-gray-700">
             <CardHeader>
-              <CardTitle className="text-2xl">Ready to Play?</CardTitle>
+              <CardTitle className="text-2xl text-white">Ready to Play?</CardTitle>
               <CardDescription className="text-gray-400">
                 Join the most thrilling social deduction game
               </CardDescription>
