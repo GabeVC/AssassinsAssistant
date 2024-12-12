@@ -2,6 +2,7 @@ import { React, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { auth, db } from "../firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
+import User from "../../../Backend/models/userModel";
 import { useNavigate } from "react-router-dom";
 import {
   Card,
@@ -12,7 +13,7 @@ import {
 } from "./ui/card";
 import { Button } from "./ui/button";
 import {
-  User,
+  User as UserIcon,
   Mail,
   Calendar,
   Target,
@@ -22,6 +23,7 @@ import {
   Gamepad as GamepadIcon,
 } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
+import { useToast } from "./ui/use-toast";
 
 /**
  * This component handles the profile page for the user
@@ -34,23 +36,46 @@ const ProfilePage = () => {
   const { user, loading: authLoading } = useAuth();
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  const formatDate = (date) => {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchProfileData = async () => {
       try {
         if (!user?.uid) return;
-        const userRef = doc(db, "users", user.uid);
-        const userDoc = await getDoc(userRef);
-        const userInfo = userDoc.data();
-        setProfileData(userInfo);
+
+        const userModel = await User.findUserById(user.uid);
+        if (!userModel) {
+          toast({
+            title: "Error",
+            description: "User not found",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        setProfileData(userModel);
       } catch (error) {
         console.error("Error fetching user data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load profile data",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUserData();
+    fetchProfileData();
   }, [user]);
 
   if (authLoading || loading) {
@@ -87,7 +112,7 @@ const ProfilePage = () => {
           <CardHeader>
             <div className="flex items-center gap-4">
               <div className="h-16 w-16 rounded-full bg-blue-600 flex items-center justify-center">
-                <User className="h-8 w-8 text-white" />
+                <UserIcon className="h-8 w-8 text-white" />
               </div>
               <div>
                 <CardTitle className="text-white text-2xl">
@@ -115,10 +140,10 @@ const ProfilePage = () => {
                 <Calendar className="h-5 w-5 text-blue-400" />
                 <span>Joined:</span>
                 <span className="text-white">
-                  {profileData?.createdAt &&
-                    new Date(
-                      profileData.createdAt.seconds * 1000
-                    ).toLocaleString()}
+                  {profileData?.createdAt ? 
+                    formatDate(profileData.createdAt) : 
+                    <Skeleton className="h-6 w-32" />
+                  }
                 </span>
               </div>
             </div>
