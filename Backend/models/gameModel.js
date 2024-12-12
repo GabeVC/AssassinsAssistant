@@ -1,6 +1,14 @@
 import Player from "./playerModel"
-
-const db = require('./database');
+import { 
+    doc, 
+    getDoc, 
+    collection, 
+    query, 
+    where, 
+    getDocs 
+  } from 'firebase/firestore';
+  import { db } from '../../Frontend/src/firebaseConfig';
+  
 const default_rules = "(1) Everyone playing is assigned a target that only they know. \n(2) They must kill their target. \n(3) When killed, their target's target become their own. \n(4) Goes until the last man standing."; 
 class Game {
     constructor({
