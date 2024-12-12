@@ -1,7 +1,8 @@
 import { collection, runTransaction, doc, query, where, getDocs, updateDoc, arrayUnion } from 'firebase/firestore';
-import { db } from '../../Frontend/src/firebaseConfig'; 
 import { v4 as uuidv4 } from 'uuid';
-
+import { db } from '../models/database'; 
+import Game from '../models/gameModel';
+ 
 /**
  * Handles assigning players their targets in the specific game
  * 
@@ -10,17 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
  */
 export const assignTargets = async (gameId) => {
   try {
-    const playersRef = collection(db, 'players');
-    const playerQuery = query(
-      playersRef,
-      where('gameId', '==', gameId),
-      where('isAlive', '==', true)  
-    );
-    const playerSnapshot = await getDocs(playerQuery);
-    const playerList = playerSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const playerList = Game.getLivingPlayers(gameId);
     // Shuffle players
     playerList.sort(() => Math.random() - 0.5);
 
@@ -53,6 +44,8 @@ export const startGame = async (gameId) => {
           const playerQuery = query(playersRef, where('gameId', '==', gameId));
           const playerSnapshot = await getDocs(playerQuery);
           
+        
+
           if (playerSnapshot.empty) {
               throw new Error('No players found in the game');
           }
