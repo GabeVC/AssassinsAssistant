@@ -1,4 +1,14 @@
 import { v4 as uuidv4 } from "uuid";
+import { 
+  doc, 
+  getDoc, 
+  collection, 
+  query, 
+  where, 
+  getDocs 
+} from 'firebase/firestore';
+import { db } from '../../Frontend/src/firebaseConfig';
+
 const db = require('./database');
 class Player {
   constructor({
