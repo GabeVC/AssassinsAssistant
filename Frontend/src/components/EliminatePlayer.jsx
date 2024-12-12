@@ -11,6 +11,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Upload } from "lucide-react";
 import { Button } from "./ui/button";
+import { useToast } from "./ui/use-toast";
 
 /**
  * This component handles the creation of the eliminate player window
@@ -21,9 +22,11 @@ import { Button } from "./ui/button";
  * @param {String} gameId - The ID for this particular game.
  * @returns {React.JSX.Element} A React element that displays the eliminate player window
  */
-const EliminatePlayer = ({ isOpen, onClose, playerList, gameId }) => {
+const EliminatePlayer = ({ isOpen, onClose, gameId }) => {
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -33,8 +36,24 @@ const EliminatePlayer = ({ isOpen, onClose, playerList, gameId }) => {
   };
 
   const submitElimination = async () => {
-    await handleElimination(playerList, gameId, file);
-    onClose(); // Close the modal after submission
+    try {
+      setIsSubmitting(true);
+      await handleElimination(gameId, file);
+      toast({
+        title: "Success",
+        description: "Elimination submitted successfully",
+        variant: "success",
+      });
+      onClose(); // Close the modal after submission
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -59,7 +78,7 @@ const EliminatePlayer = ({ isOpen, onClose, playerList, gameId }) => {
               e.preventDefault();
               setIsDragging(false);
               const droppedFile = e.dataTransfer.files[0];
-              if (droppedFile?.type.startsWith("image/")) {
+              if (droppedFile) {
                 setFile(droppedFile);
               }
             }}
@@ -69,7 +88,7 @@ const EliminatePlayer = ({ isOpen, onClose, playerList, gameId }) => {
               type="file"
               id="fileInput"
               accept="image/*,video/*"
-              onChange={(e) => setFile(e.target.files[0])}
+              onChange={handleFileChange}
               className="hidden"
             />
             <Label
@@ -85,9 +104,9 @@ const EliminatePlayer = ({ isOpen, onClose, playerList, gameId }) => {
           <Button
             onClick={submitElimination}
             className="w-full bg-red-600 hover:bg-red-700"
-            disabled={!file}
+            disabled={!file || isSubmitting}
           >
-            Submit Elimination
+            {isSubmitting ? "Submitting..." : "Submit Elimination"}
           </Button>
         </div>
       </DialogContent>

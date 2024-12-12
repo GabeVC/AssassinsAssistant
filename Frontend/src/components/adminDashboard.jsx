@@ -4,6 +4,7 @@ import {
   verifyKill,
   rejectKill,
 } from "../../../Backend/controllers/playerController";
+import Player from "../../../Backend/models/playerModel";
 import {
   Card,
   CardContent,
@@ -22,28 +23,28 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
-
-/**
- * This component handles the creation of the admin page
- *
- * @param {string} gameId - The corresponding game's ID
- * @returns {React.JSX.Element} A React element that displays the admin page
- */
+import { useToast } from "./ui/use-toast";
 
 const AdminDashboard = ({ gameId }) => {
   const [pendingKills, setPendingKills] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   const loadPendingKills = async () => {
     try {
       setLoading(true);
-      const kills = await fetchPendingKills(gameId);
+      const kills = await Player.findPendingPlayersByGameId(gameId);
       setPendingKills(kills);
       setError(null);
     } catch (err) {
       console.error("Error loading pending kills:", err);
       setError("Failed to load pending kills. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to load pending kills",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -53,30 +54,54 @@ const AdminDashboard = ({ gameId }) => {
     loadPendingKills();
   }, [gameId]);
 
+  const formatDate = (date) => {
+    if (!date) return '';
+    if (date instanceof Date) {
+        return date.toLocaleString();
+    }
+    return date;
+};
   const handleVerifyKill = async (playerId) => {
-    console.log(playerId);
     try {
-      await verifyKill(playerId);
-      setPendingKills((prevKills) =>
-        prevKills.filter((kill) => kill.id !== playerId)
-      );
-      window.location.reload();
+      const result = await verifyKill(playerId);
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Kill verified successfully",
+          variant: "success",
+        });
+        await loadPendingKills(); // Reload the list instead of full page refresh
+      } else {
+        throw new Error(result.message);
+      }
     } catch (error) {
       console.error("Error verifying kill:", error);
-      setError("Failed to verify kill. Please try again.");
+      toast({
+        title: "Error",
+        description: error.message || "Failed to verify kill",
+        variant: "destructive",
+      });
     }
   };
 
   const handleRejectKill = async (playerId) => {
     try {
-      await rejectKill(playerId);
-      setPendingKills((prevKills) =>
-        prevKills.filter((kill) => kill.id !== playerId)
-      );
-      window.location.reload();
+      const result = await rejectKill(playerId);
+      if (result) {
+        toast({
+          title: "Success",
+          description: "Kill rejected successfully",
+          variant: "success",
+        });
+        await loadPendingKills(); // Reload the list instead of full page refresh
+      }
     } catch (error) {
       console.error("Error rejecting kill:", error);
-      setError("Failed to reject kill. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to reject kill",
+        variant: "destructive",
+      });
     }
   };
 
@@ -111,78 +136,82 @@ const AdminDashboard = ({ gameId }) => {
         </Card>
       ) : (
         <div className="space-y-4">
-          {pendingKills.map((player) => (
-            <Card key={player.id} className="bg-gray-800/80 border-gray-700">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-white">
-                      {player.playerName}
-                    </CardTitle>
-                    <CardDescription className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-gray-400" />
-                      {player.lastUpdated?.toDate().toLocaleString()}
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {player.evidenceUrl && (
-                  <div className="rounded-lg overflow-hidden bg-gray-900/50">
-                    {player.evidenceUrl.includes(".mp4") ? (
-                      <video
-                        controls
-                        className="w-full max-h-[400px] object-contain"
-                      >
-                        <source src={player.evidenceUrl} type="video/mp4" />
-                        Your browser does not support the video tag.
-                      </video>
-                    ) : (
-                      <img
-                        src={player.evidenceUrl}
-                        alt="Kill Evidence"
-                        className="w-full max-h-[400px] object-contain"
-                      />
-                    )}
-                  </div>
-                )}
-
-                {player.dispute && (
-                  <Card className="bg-yellow-900/20 border-yellow-700">
-                    <CardHeader>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4 text-yellow-500" />
-                        Dispute Submitted
+          {pendingKills.map((player) => {
+            const latestAttempt = player.getLatestEliminationAttempt();
+            
+            return (
+              <Card key={player.id} className="bg-gray-800/80 border-gray-700">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-white">
+                        {player.playerName}
                       </CardTitle>
-                      <CardDescription className="text-gray-400">
-                        {player.disputeTimestamp?.toDate().toLocaleString()}
+                      <CardDescription className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-gray-400" />
+                        {formatDate(latestAttempt?.timestamp)}
+                    </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {latestAttempt?.evidenceUrl && (
+                    <div className="rounded-lg overflow-hidden bg-gray-900/50">
+                      {latestAttempt.evidenceUrl.includes(".mp4") ? (
+                        <video
+                          controls
+                          className="w-full max-h-[400px] object-contain"
+                        >
+                          <source src={latestAttempt.evidenceUrl} type="video/mp4" />
+                          Your browser does not support the video tag.
+                        </video>
+                      ) : (
+                        <img
+                          src={latestAttempt.evidenceUrl}
+                          alt="Kill Evidence"
+                          className="w-full max-h-[400px] object-contain"
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {latestAttempt?.dispute && (
+                    <Card className="bg-yellow-900/20 border-yellow-700">
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <MessageSquare className="h-4 w-4 text-yellow-500" />
+                          Dispute Submitted
+                        </CardTitle>
+                        <CardDescription className="text-gray-400">
+                          {formatDate(latestAttempt?.disputeTimestamp)}
                       </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-300">{player.dispute}</p>
-                    </CardContent>
-                  </Card>
-                )}
-              </CardContent>
-              <CardFooter className="flex justify-end gap-3">
-                <Button
-                  variant="outline"
-                  className="border-red-800 hover:bg-red-900/50 text-red-500"
-                  onClick={() => handleRejectKill(player.id)}
-                >
-                  <XCircle className="mr-2 h-4 w-4" />
-                  Reject
-                </Button>
-                <Button
-                  className="bg-green-600 hover:bg-green-700"
-                  onClick={() => handleVerifyKill(player.id)}
-                >
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Verify Kill
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-gray-300">{latestAttempt.dispute}</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </CardContent>
+                <CardFooter className="flex justify-end gap-3">
+                  <Button
+                    variant="outline"
+                    className="border-red-800 hover:bg-red-900/50 text-red-500"
+                    onClick={() => handleRejectKill(player.id)}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Reject
+                  </Button>
+                  <Button
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => handleVerifyKill(player.id)}
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Verify Kill
+                  </Button>
+                </CardFooter>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

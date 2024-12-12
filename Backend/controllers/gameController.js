@@ -1,38 +1,24 @@
-import { collection, runTransaction, doc, query, where, getDocs, updateDoc, arrayUnion } from 'firebase/firestore';
-import { db } from '../../Frontend/src/firebaseConfig'; 
-import { v4 as uuidv4 } from 'uuid';
+import { doc, runTransaction, collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../../Frontend/src/firebaseConfig';
+import Game from '../models/gameModel';
+import Player from '../models/playerModel';
+import User from '../models/userModel';
 
-/**
- * Handles assigning players their targets in the specific game
- * 
- * @param {string} gameId - The corresponding game's ID
- * @returns {Promise<void>} assigns players their targets in the specific game
- */
 export const assignTargets = async (gameId) => {
   try {
-    const playersRef = collection(db, 'players');
-    const playerQuery = query(
-      playersRef,
-      where('gameId', '==', gameId),
-      where('isAlive', '==', true)  
-    );
-    const playerSnapshot = await getDocs(playerQuery);
-    const playerList = playerSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const livingPlayers = await Game.getLivingPlayers(gameId);
     // Shuffle players
-    playerList.sort(() => Math.random() - 0.5);
+    livingPlayers.sort(() => Math.random() - 0.5);
 
-    // Assign targets
-    const updates = playerList.map((player, index) => {
-      const targetIndex = (index + 1) % playerList.length;
-      return updateDoc(doc(db, 'players', player.id), {
-        targetId: playerList[targetIndex].id,
+    await runTransaction(db, async (transaction) => {
+      // Update each player's target in the transaction
+      livingPlayers.forEach((player, index) => {
+        const targetIndex = (index + 1) % livingPlayers.length;
+        player.targetId = livingPlayers[targetIndex].id;
+        transaction.update(doc(db, 'players', player.id), player.toFirestore());
       });
     });
 
-    await Promise.all(updates);
     console.log('Targets assigned successfully.');
   } catch (error) {
     console.error('Error assigning targets:', error);
@@ -40,151 +26,107 @@ export const assignTargets = async (gameId) => {
   }
 };
 
-/**
- * Starts any specific game
- * 
- * @param {string} gameId - The corresponding game's ID
- * @returns {Promise<void>} Starts the specific game for all players.
- */
 export const startGame = async (gameId) => {
   try {
-      await runTransaction(db, async (transaction) => {
-          const playersRef = collection(db, 'players');
-          const playerQuery = query(playersRef, where('gameId', '==', gameId));
-          const playerSnapshot = await getDocs(playerQuery);
-          
-          if (playerSnapshot.empty) {
-              throw new Error('No players found in the game');
-          }
+    await runTransaction(db, async (transaction) => {
+      // Get game and validate
+      const game = await Game.getGamebyId(gameId);
+      if (!game) {
+        throw new Error('Game not found');
+      }
 
-          const gameRef = doc(db, 'games', gameId);
-          const gameDoc = await transaction.get(gameRef);
+      if (!game.canStart()) {
+        throw new Error('Game cannot be started');
+      }
 
-          if (!gameDoc.exists()) {
-              throw new Error('Game not found');
-          }
+      // Get all players
+      const playersRef = collection(db, 'players');
+      const playerQuery = query(playersRef, where('gameId', '==', gameId));
+      const playerSnapshot = await getDocs(playerQuery);
 
-          const userDocs = await Promise.all(
-              playerSnapshot.docs.map(async (playerDoc) => {
-                  const userData = playerDoc.data();
-                  if (!userData.userId) return null;
-                  const userRef = doc(db, 'users', userData.userId);
-                  return await transaction.get(userRef);
-              })
-          );
+      if (playerSnapshot.empty) {
+        throw new Error('No players found in the game');
+      }
 
-          transaction.update(gameRef, { isActive: true });
+      // Convert to Player models and get their users
+      const players = playerSnapshot.docs.map(doc => Player.fromFirestore(doc));
+      const users = await Promise.all(
+        players.map(player => User.findUserById(player.userId))
+      );
 
-          playerSnapshot.docs.forEach((playerDoc, index) => {
-              const userData = playerDoc.data();
-              const userDoc = userDocs[index];
-              
-              if (userDoc && userDoc.exists()) {
-                  const currentStats = userDoc.data().stats || {};
-                  transaction.update(doc(db, 'users', userData.userId), {
-                      'stats.gamesPlayed': (currentStats.gamesPlayed || 0) + 1
-                  });
-              }
-          });
+      // Update game state
+      game.isActive = true;
+      game.gameStatus = 'active';
+      transaction.update(doc(db, 'games', game.id), game.toFirestore());
+
+      // Update each user's stats
+      users.forEach(user => {
+        if (user) {
+          user.incrementStats('gamesPlayed');
+          transaction.update(doc(db, 'users', user.id), user.toFirestore());
+        }
       });
+    });
 
-      // Assign targets after transaction completes
-      await assignTargets(gameId);
-      console.log('Game started, targets assigned, and player stats updated.');
+    // Assign targets after transaction completes
+    await assignTargets(gameId);
+    console.log('Game started, targets assigned, and player stats updated.');
 
   } catch (error) {
-      console.error('Error starting the game:', error);
-      throw error;
+    console.error('Error starting the game:', error);
+    throw error;
   }
 };
 
 export const updateGame = async (gameId, killerId, killedPlayerId) => {
   try {
-      await runTransaction(db, async (transaction) => {
-          const gameRef = doc(db, 'games', gameId);
-          const killerRef = doc(db, 'players', killerId);
-          const killedPlayerRef = doc(db, 'players', killedPlayerId);
+    await runTransaction(db, async (transaction) => {
+      // Get all required documents and convert to models
+      const [game, killer, killedPlayer] = await Promise.all([
+        Game.getGamebyId(gameId),
+        Player.findPlayerById(killerId),
+        Player.findPlayerById(killedPlayerId)
+      ]);
 
-          const [gameDoc, killerDoc, killedPlayerDoc] = await Promise.all([
-              transaction.get(gameRef),
-              transaction.get(killerRef),
-              transaction.get(killedPlayerRef)
-          ]);
+      if (!game || !killer || !killedPlayer) {
+        throw new Error('Required documents not found');
+      }
 
-          if (!gameDoc.exists() || !killerDoc.exists() || !killedPlayerDoc.exists()) {
-              throw new Error('Required documents not found');
-          }
+      // Get killer's user document
+      const killerUser = await User.findPlayerById(killer.userId);
+      if (!killerUser) {
+        throw new Error('Killer user not found');
+      }
 
-          const killedPlayerData = killedPlayerDoc.data();
-          const gameData = gameDoc.data();
-          const killerData = killerDoc.data();
+      // Update killer's target
+      killer.targetId = killedPlayer.targetId;
 
-          // Get the killed player's target
-          const newTargetId = killedPlayerData.targetId;
+      // Get count of remaining alive players
+      const livingPlayers = await Game.getLivingPlayers(gameId);
+      const aliveCount = livingPlayers.length - 1; // Subtract 1 for soon-to-be-eliminated player
 
-          if (!newTargetId) {
-              throw new Error('Killed player has no target ID');
-          }
+      // Add elimination to game history
+      game.addElimination(killerId, killedPlayerId);
 
-          // Update killer's target
-          transaction.update(killerRef, {
-              targetId: newTargetId
-          });
+      if (aliveCount <= 1) {
+        // Game is ending
+        game.markAsComplete(killerId, killer.playerName);
+        killerUser.incrementStats('gamesWon');
+      }
 
-          // Check remaining players
-          const playersRef = collection(db, 'players');
-          const alivePlayersQuery = query(
-              playersRef,
-              where('gameId', '==', gameId),
-              where('isAlive', '==', true)
-          );
-          
-          const alivePlayers = await getDocs(alivePlayersQuery);
-          const aliveCount = alivePlayers.size - 1; // Subtract 1 for the killed player
+      // Perform all updates
+      transaction.update(doc(db, 'players', killer.id), killer.toFirestore());
+      transaction.update(doc(db, 'players', killedPlayer.id), killedPlayer.toFirestore());
+      transaction.update(doc(db, 'games', game.id), game.toFirestore());
+      transaction.update(doc(db, 'users', killerUser.id), killerUser.toFirestore());
+    });
 
-          // If game is ending, update winner's stats
-          if (aliveCount <= 1) {
-              // Update game state
-              transaction.update(gameRef, {
-                  isActive: false,
-                  endTime: new Date(),
-                  winner: killerId,
-                  winnerName: killerData.displayName || 'Unknown',
-                  gameStatus: 'completed'
-              });
-
-              // Update winner's stats
-              if (killerData.userId) {
-                  const userRef = doc(db, 'users', killerData.userId);
-                  const userDoc = await transaction.get(userRef);
-                  
-                  if (userDoc.exists()) {
-                      const currentStats = userDoc.data().stats || {};
-                      transaction.update(userRef, {
-                          'stats.gamesWon': (currentStats.gamesWon || 0) + 1
-                      });
-                  }
-              }
-          }
-
-          // Update elimination history
-          const elimination = {
-              killerId,
-              killedPlayerId,
-              timestamp: new Date(),
-          };
-
-          transaction.update(gameRef, {
-              eliminations: [...(gameData.eliminations || []), elimination]
-          });
-      });
-
-      return { 
-          success: true,
-          message: 'Game updated successfully'
-      };
+    return {
+      success: true,
+      message: 'Game updated successfully'
+    };
   } catch (error) {
-      console.error('Error updating game:', error);
-      throw error;
+    console.error('Error updating game:', error);
+    throw error;
   }
 };
