@@ -130,3 +130,21 @@ export const updateGame = async (gameId, killerId, killedPlayerId) => {
     throw error;
   }
 };
+
+export const fetchGameData = async (gameId) => {
+    try {
+      // Fetch game details
+      const game = await Game.getGamebyId(gameId);
+      if (!game) {
+        throw new Error('Game not found');
+      }
+  
+      // Fetch players in the game
+      const players = await Player.findPlayersByGameId(gameId);
+  
+      return { game, players };
+    } catch (error) {
+      console.error('Error fetching game data:', error);
+      throw error;
+    }
+  };

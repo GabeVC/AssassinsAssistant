@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "./ui/dialog";
+import Player from "../../../Backend/models/playerModel";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Upload } from "lucide-react";
@@ -40,28 +41,29 @@ const DisputeForm = ({ playerId, eliminationAttemptId, onClose }) => {
     setSubmitting(true);
     setError(null);
     try {
-        const playerRef = doc(db, 'players', playerId);
-        const playerDoc = await getDoc(playerRef);
+      // Use Player model to find the player by ID
+      const player = await Player.findPlayerById(playerId);
 
-        if (!playerDoc.exists()) {
-            throw new Error('Player not found');
+      if (!player) {
+        throw new Error('Player not found');
+      }
+
+      // Update the specific elimination attempt
+      const updatedAttempts = player.eliminationAttempts.map(attempt => {
+        if (attempt.id === eliminationAttemptId) {
+          return {
+            ...attempt,
+            dispute: disputeText,
+            disputeTimestamp: new Date()
+          };
         }
+        return attempt;
+      });
 
-        const attempts = playerDoc.data().eliminationAttempts || [];
-        const updatedAttempts = attempts.map(attempt => {
-            if (attempt.id === eliminationAttemptId) {
-                return {
-                    ...attempt,
-                    dispute: disputeText,
-                    disputeTimestamp: new Date()
-                };
-            }
-            return attempt;
-        });
-
-        await updateDoc(playerRef, {
-            eliminationAttempts: updatedAttempts
-        });
+      // Update the player data in Firestore using the model's method
+      await updateDoc(doc(db, 'players', playerId), {
+        eliminationAttempts: updatedAttempts
+      });
 
         setSuccess(true);
         // Wait for 2 seconds to show success message before closing

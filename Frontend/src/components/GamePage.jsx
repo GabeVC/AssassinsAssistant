@@ -14,7 +14,7 @@ import GameSettings from "./GameSettings";
 import CreateAnnouncement from "./CreateAnnouncement";
 import { AnnouncementItem } from "./GameFeed";
 import AdminDashboard from "./adminDashboard";
-import { startGame } from "../../../Backend/controllers/gameController";
+import { startGame, fetchGameData } from "../../../Backend/controllers/gameController";
 import EliminatePlayer from "./EliminatePlayer";
 import DisputeForm from "./DisputeForm";
 import PlayerList from "./PlayerList";
@@ -36,6 +36,7 @@ import {
   MessageSquare,
   Trophy
 } from "lucide-react";
+import Game from "../../../Backend/models/gameModel";
 
 /**
  * This component handles displaying and containing all elements of the game page
@@ -65,31 +66,39 @@ const GamePage = () => {
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
 
   useEffect(() => {
-    const fetchGameData = async () => {
+    const fetchData = async () => {
       try {
-        // Fetch game data
-        const gameRef = doc(db, "games", gameId);
-        const gameDoc = await getDoc(gameRef);
+        // Fetch game and players data using the backend fetchGameData method
+        const { game, players } = await fetchGameData(gameId);
+        setGameData(game);
+        setPlayers(players);
 
-        if (!gameDoc.exists()) {
-          console.error("Game not found!");
-          navigate("/");
-          return;
+        const livingPlayers = players.filter((p) => p.isAlive);
+        setLiving(livingPlayers.length);
+
+        // Set current player information
+        const userId = auth.currentUser.uid;
+        const currentUser = players.find((player) => player.userId === userId);
+
+        if (currentUser) {
+          const latestAttempt =
+            currentUser.eliminationAttempts[
+              currentUser.eliminationAttempts.length - 1
+            ];
+
+          setCurrentPlayer({
+            ...currentUser,
+            latestAttempt,
+            canDispute:
+              currentUser.isPending && latestAttempt && !latestAttempt.dispute,
+          });
+
+          const targetPlayer = await currentUser.findTarget();
+          setUserTargetName(
+            targetPlayer ? targetPlayer.playerName : "No target assigned"
+          );
+          setIsAdmin(currentUser.isAdmin);
         }
-
-        const gameInfo = gameDoc.data();
-        setGameData(gameInfo);
-
-        // Fetch players
-        const playersRef = collection(db, "players");
-        const playerQuery = query(playersRef, where("gameId", "==", gameId));
-        const playerSnapshot = await getDocs(playerQuery);
-        const playerList = playerSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setPlayers(playerList);
-        setLiving(playerList.filter((p) => p.isAlive).length);
 
         // Set up announcements listener
         const announcementsRef = collection(db, "announcements");
@@ -108,42 +117,16 @@ const GamePage = () => {
           setAnnouncements(announcementList);
         });
 
-        // Process current user data
-        const userId = auth.currentUser.uid;
-        const currentUser = playerList.find(
-          (player) => player.userId === userId
-        );
-
-        if (currentUser) {
-          const eliminationAttempts = currentUser.eliminationAttempts || [];
-          const latestAttempt =
-            eliminationAttempts[eliminationAttempts.length - 1];
-
-          setCurrentPlayer({
-            ...currentUser,
-            latestAttempt,
-            canDispute:
-              currentUser.isPending && latestAttempt && !latestAttempt.dispute,
-          });
-
-          const targetPlayer = playerList.find(
-            (player) => player.id === currentUser.targetId
-          );
-          setUserTargetName(
-            targetPlayer ? targetPlayer.playerName : "No target assigned"
-          );
-          setIsAdmin(currentUser.isAdmin);
-        }
-
         return () => unsubscribe();
       } catch (error) {
         console.error("Error fetching game data:", error);
+        navigate("/");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchGameData();
+    fetchData();
   }, [gameId, navigate]);
 
   const handleBeginGame = async () => {

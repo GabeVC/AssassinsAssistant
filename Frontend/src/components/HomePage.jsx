@@ -2,6 +2,9 @@ import { React, useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { db, auth} from "../firebaseConfig";
+import Game from "../../../Backend/models/gameModel";
+import User from "../../../Backend/models/userModel";
+import Player from "../../../Backend/models/playerModel";
 import {
   collection,
   query,
@@ -58,65 +61,48 @@ const HomePage = () => {
   useEffect(() => {
     const fetchGames = async () => {
       try {
-        const userId = auth.currentUser.uid;
-        const playersRef = collection(db, 'players');
-        const playerQuery = query(playersRef, where('userId', '==', userId));
-        const playerSnapshot = await getDocs(playerQuery);
-        
-        const gamePromises = playerSnapshot.docs.map(async (playerDoc) => {
-          const playerData = playerDoc.data();
-          const gameRef = doc(db, 'games', playerData.gameId);
-          const gameDoc = await getDoc(gameRef);
-          
-          if (!gameDoc.exists()) return null;
-          
-          // Get alive players count
-          const alivePlayersQuery = query(
-            collection(db, 'players'),
-            where('gameId', '==', playerData.gameId),
-            where('isAlive', '==', true)
-          );
-          const alivePlayersSnapshot = await getDocs(alivePlayersQuery);
+    const userId = auth.currentUser?.uid;
+    if (!userId) throw new Error('User not authenticated');
+
+    // Get user instance and their games
+    const user = await User.findUserById(userId);
+    if (!user) throw new Error('User not found');
     
-          // Get pending eliminations for this game
-          const pendingPlayersQuery = query(
-            collection(db, 'players'),
-            where('gameId', '==', playerData.gameId),
-            where('isPending', '==', true)
-          );
-          const pendingPlayersSnapshot = await getDocs(pendingPlayersQuery);
+    const userGames = await user.findGames();
     
-          // Check if current player has a pending elimination
-          const hasEliminationAttempt = playerData.isPending;
-          const canDispute = hasEliminationAttempt && 
-            playerData.eliminationAttempts?.length > 0 && 
-            !playerData.eliminationAttempts[playerData.eliminationAttempts.length - 1].dispute;
-          
-          return {
-            id: gameDoc.id,
-            ...gameDoc.data(),
-            isAdmin: playerData.isAdmin,
-            playerStatus: playerData.isAlive ? 'Alive' : 'Eliminated',
-            alivePlayers: alivePlayersSnapshot.size,
-            hasEliminationAttempt,
-            canDispute,
-            pendingEliminations: pendingPlayersSnapshot.size,
-          };
-        });
+    // Transform games for UI
+    const gamePromises = userGames.map(async (game) => {
+      const [alivePlayers, pendingPlayers] = await Promise.all([
+        Game.getLivingPlayers(game.id),
+        Player.findPendingPlayersByGameId(game.id)
+      ]);
+
+      // Get current player's status in this game
+      const player = await Player.findByUserAndGame(userId, game.id);
+      
+      return {
+        id: game.id,
+        ...game.toFirestore(),
+        isAdmin: player?.isAdmin || false,
+        playerStatus: player?.isAlive ? 'Alive' : 'Eliminated',
+        alivePlayers: alivePlayers.length,
+        hasEliminationAttempt: player?.isPending || false,
+        canDispute: player?.getLatestEliminationAttempt()?.canDispute || false,
+        pendingEliminations: pendingPlayers.length,
+      };
+    });
         
         const gamesData = await Promise.all(gamePromises);
         setGames(gamesData.filter(game => game !== null));
-        setLoading(false);
       } catch (error) {
         console.error('Error fetching games:', error);
+      } finally {
         setLoading(false);
       }
     };
 
-    if (user) {
-      fetchGames();  // Removed uid parameter as it's not needed
-    }
-  }, [user]);
+    fetchGames();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">

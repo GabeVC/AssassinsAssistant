@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { React,  useState } from "react";
 import { auth, db } from "../firebaseConfig";
 import {
   doc,
@@ -8,18 +8,18 @@ import {
   runTransaction,
 } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
+import { createAnnouncement } from "../../../Backend/controllers/feedController";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "./ui/dialog";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Upload } from "lucide-react";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
+import { useToast } from "./ui/use-toast";
+import { Label } from "./ui/label";
+
 
 /**
  * This component handles the creation of an announcement
@@ -31,81 +31,61 @@ import { Textarea } from "./ui/textarea";
  */
 const CreateAnnouncement = ({ isOpen, onClose, gameId }) => {
   const [content, setContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
-  const handleCreateAnnouncement = async (e) => {
-    e.preventDefault();
-
+  const handleSubmit = async () => {
     if (!content.trim()) {
-      alert("Announcement cannot be empty");
+      toast({
+        title: "Error",
+        description: "Announcement content cannot be empty",
+        variant: "destructive",
+      });
       return;
     }
 
-    const announcementId = uuidv4();
-
     try {
-      await runTransaction(db, async (transaction) => {
-        const userId = auth.currentUser ? auth.currentUser.uid : null;
-
-        if (!userId) {
-          throw new Error("User is not authenticated");
-        }
-        const announcementRef = doc(db, "announcements", announcementId);
-
-        if (!announcementId || !gameId || !content) {
-          console.error("Error creating announcement");
-          alert(
-            "Failed to create announcement. All changes have been rolled back."
-          );
-        }
-
-        transaction.set(announcementRef, {
-          gameId,
-          announcementId,
-          content,
-          timestamp: new Date(),
-        });
+      setIsSubmitting(true);
+      await createAnnouncement(content, gameId);
+      toast({
+        title: "Success",
+        description: "Announcement created successfully",
+        variant: "success",
       });
-
+      setContent("");
       onClose();
-      alert("Anncouncement created successfully!");
     } catch (error) {
-      console.error("Error creating announcement:", error);
-      alert("Failed to create announcment. All changes have been rolled back.");
+      toast({
+        title: "Error",
+        description: "Failed to create announcement",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  if (!isOpen) return null;
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-800 text-white border-gray-700 sm:max-w-[425px]">
+      <DialogContent className="bg-gray-800 text-white border-gray-700">
         <DialogHeader>
-          <DialogTitle>Make an Announcement</DialogTitle>
-          <DialogDescription className="text-gray-400">
-            Create an announcement for all players to see
-          </DialogDescription>
+          <DialogTitle>Create Announcement</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleCreateAnnouncement}>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="content">Announcement</Label>
-              <Textarea
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Enter your announcement..."
-                className="bg-gray-900/50 border-gray-700 text-white resize-none"
-                required
-              />
-            </div>
-            <Button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700"
-            >
-              Post Announcement
-            </Button>
-          </div>
-        </form>
+        <div className="space-y-4">
+          <Textarea
+            placeholder="Enter your announcement..."
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="min-h-[100px] bg-gray-900/50 border-gray-700"
+          />
+          <Button
+            className="w-full bg-blue-600 hover:bg-blue-700"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Creating..." : "Create Announcement"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

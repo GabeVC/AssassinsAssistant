@@ -1,63 +1,81 @@
-import React, { useState } from "react";
-import { doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { db } from "../firebaseConfig";
-import { Card, CardContent } from "./ui/card";
-import { Button } from "./ui/button";
-import { Pencil, Trash2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { deleteAnnouncement } from "../../../Backend/controllers/feedController";
+import Announcement from "../../../Backend/models/announcementModel";
 import {
-  Dialog,
-  DialogContent,
+  Card,
+  CardContent,
+} from "./ui/card";
+import {
+  Alert,
+  AlertDescription,
+} from "./ui/alert";
+import {DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "./ui/dialog";
+  Dialog,} from "./ui/dialog";
+import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Alert, AlertDescription } from "./ui/alert";
+import { Pencil, Trash2 } from "lucide-react";
+import Player from "../../../Backend/models/playerModel";
+import { useToast } from "./ui/use-toast";
 
-/**
- * This component handles announcments and editing them.
- *
- * @param {String} announcement - The contents of the announcement
- * @param {Boolean} isAdmin - Whether the client is the admin or not
- * @returns {React.JSX.Element} A React element that contains the announcment and some edit functionality.
- */
-const AnnouncementItem = ({ announcement, isAdmin }) => {
-  const { id, content, timestamp } = announcement;
+export const AnnouncementItem = ({ announcement, isAdmin }) => {
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [editedContent, setEditedContent] = useState(content);
+  const [editedContent, setEditedContent] = useState(announcement.content);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const { toast } = useToast();
 
   const handleEdit = async () => {
     try {
       setIsLoading(true);
-      setError(null);
-      const announcementRef = doc(db, "announcements", id);
-      await updateDoc(announcementRef, { content: editedContent });
+      const updatedAnnouncement = new Announcement({
+        ...announcement,
+        content: editedContent
+      });
+      await updatedAnnouncement.update();
+      toast({
+        title: "Success",
+        description: "Announcement updated successfully",
+        variant: "success"
+      });
       setShowEditDialog(false);
     } catch (error) {
-      setError("Failed to update announcement. Please try again.");
-      console.error("Error updating announcement:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update announcement",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
   };
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return '';
+    const date = timestamp instanceof Date ? timestamp : timestamp.toDate();
+    return date.toLocaleString();
+  };
 
   const handleDelete = async () => {
     try {
-      setIsLoading(true);
-      setError(null);
-      const announcementRef = doc(db, "announcements", id);
-      await deleteDoc(announcementRef);
+      await deleteAnnouncement(announcement.id);
+      toast({
+        title: "Success",
+        description: "Announcement deleted",
+        variant: "success",
+      });
       setShowDeleteDialog(false);
     } catch (error) {
-      setError("Failed to delete announcement. Please try again.");
-      console.error("Error deleting announcement:", error);
-    } finally {
-      setIsLoading(false);
+      toast({
+        title: "Error",
+        description: "Failed to delete announcement",
+        variant: "destructive",
+      });
     }
   };
 
@@ -67,9 +85,9 @@ const AnnouncementItem = ({ announcement, isAdmin }) => {
         <CardContent className="p-4">
           <div className="flex justify-between items-start gap-4">
             <div className="space-y-2 flex-1">
-              <p className="text-gray-100">{content}</p>
+              <p className="text-gray-100">{announcement.content}</p>
               <p className="text-sm text-gray-400">
-                {new Date(timestamp.seconds * 1000).toLocaleString()}
+              {formatTimestamp(announcement.timestamp)}
               </p>
             </div>
             {isAdmin && (
@@ -105,14 +123,6 @@ const AnnouncementItem = ({ announcement, isAdmin }) => {
               Make changes to your announcement below.
             </DialogDescription>
           </DialogHeader>
-          {error && (
-            <Alert
-              variant="destructive"
-              className="bg-red-900/50 border-red-800"
-            >
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="announcement">Announcement Text</Label>
@@ -128,7 +138,7 @@ const AnnouncementItem = ({ announcement, isAdmin }) => {
             <Button
               variant="outline"
               onClick={() => setShowEditDialog(false)}
-              className="border-gray-600 hover:bg-gray-700"
+              className="text-black border-gray-600 hover:bg-gray-700"
               disabled={isLoading}
             >
               Cancel
@@ -161,19 +171,11 @@ const AnnouncementItem = ({ announcement, isAdmin }) => {
               cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          {error && (
-            <Alert
-              variant="destructive"
-              className="bg-red-900/50 border-red-800"
-            >
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setShowDeleteDialog(false)}
-              className="border-gray-600 hover:bg-gray-700"
+              className="text-black border-gray-600 hover:bg-gray-700"
               disabled={isLoading}
             >
               Cancel
@@ -199,108 +201,85 @@ const AnnouncementItem = ({ announcement, isAdmin }) => {
   );
 };
 
-/**
- * This component handles displaying AnnouncementItem components
- *
- * @returns {React.JSX.Element} A React element that displays all the AnnouncementItem components
- */
 const GameFeed = () => {
   const { gameId } = useParams();
-  const [gameData, setGameData] = useState(null);
-  const [players, setPlayers] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
-    const fetchGameData = async () => {
+    const fetchFeedData = async () => {
       try {
-        const gameRef = doc(db, "games", gameId);
-        const gameDoc = await getDoc(gameRef);
+        // Get announcements
+        const announcementsList = await Announcement.findByGameId(gameId);
+        setAnnouncements(announcementsList);
 
-        if (gameDoc.exists()) {
-          const gameInfo = gameDoc.data();
-          setGameData(gameInfo);
+        // Get player to check admin status
+        const player = await Player.findByUserAndGame(auth.currentUser.uid, gameId);
 
-          const playersRef = collection(db, "players");
-          const playerQuery = query(playersRef, where("gameId", "==", gameId));
-          const playerSnapshot = await getDocs(playerQuery);
-          const playerList = playerSnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          setPlayers(playerList);
-
-          // Set up a listener for announcements
-          const announcementsRef = collection(db, "announcements");
-          const announcementQuery = query(
-            announcementsRef,
-            where("gameId", "==", gameId)
-          );
-          const unsubscribe = onSnapshot(announcementQuery, (snapshot) => {
-            const announcementList = snapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-            }));
-
-            // Sort announcements by timestamp (assuming timestamp is a Firestore Timestamp)
-            const sortedAnnouncements = announcementList.sort((a, b) => {
-              return b.timestamp.seconds - a.timestamp.seconds; // Sort in descending order
-            });
-
-            setAnnouncements(sortedAnnouncements);
-          });
-
-          const currentUser = playerList.find((player) => player.isAdmin);
-          setIsAdmin(currentUser ? currentUser.isAdmin : false);
-
-          return () => unsubscribe();
+        if (player) {
+          // Set isAdmin based on the player's data
+          setIsAdmin(player.isAdmin);
         } else {
-          console.error("No such game exists!");
+          console.log('Player not found for the current user and game');
         }
       } catch (error) {
-        console.error("Error fetching game data:", error);
+        console.error("Error fetching feed data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load feed data",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
     };
 
-    fetchGameData();
-  }, [gameId]);
+    fetchFeedData();
+  }, [gameId, toast]);
 
-  if (loading) return <p>Loading game details...</p>;
+  if (loading) {
+    return (
+      <div className="flex justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500" />
+      </div>
+    );
+  }
 
   return (
-    <div className="game-details">
-      <button className="back-button" onClick={() => navigate("/")}>
-        Back to Home
-      </button>
-      {gameData ? (
-        <>
-          <h2>{gameData.title} Feed</h2>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-white">Game Feed</h2>
+        <Button
+          variant="outline"
+          onClick={() => navigate("/")}
+          className="border-gray-700 text-gray-200"
+        >
+          Back to Home
+        </Button>
+      </div>
 
-          {/* Scrollable player list */}
-          <div>
-            <h3>Announcements</h3>
-            <div className="player-list">
-              {announcements.map((announcement) => (
-                <div key={announcement.id}>
-                  <AnnouncementItem
-                    announcement={announcement}
-                    isAdmin={isAdmin}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      ) : (
-        <p>Game not found.</p>
-      )}
+      <div className="space-y-4">
+        {announcements.length === 0 ? (
+          <Card className="bg-gray-800/80 border-gray-700">
+            <CardContent className="p-6 text-center text-gray-400">
+              No announcements yet
+            </CardContent>
+          </Card>
+        ) : (
+          announcements.map((announcement) => (
+            <AnnouncementItem
+              key={announcement.id}
+              announcement={announcement}
+              isAdmin={isAdmin}
+            />
+          ))
+        )}
+      </div>
     </div>
   );
 };
 
 export default GameFeed;
-export { AnnouncementItem };

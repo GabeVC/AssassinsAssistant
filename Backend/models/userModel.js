@@ -1,6 +1,6 @@
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../Frontend/src/firebaseConfig';
-
+import Game from './gameModel';
 class User {
     constructor({
         id,
