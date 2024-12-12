@@ -445,7 +445,6 @@ const GamePage = () => {
             <EliminatePlayer
               isOpen={showEliminateModal}
               onClose={() => setShowEliminateModal(false)}
-              playerList={players}
               gameId={gameId}
             />
 

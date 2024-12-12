@@ -9,7 +9,6 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../Frontend/src/firebaseConfig';
 
-const db = require('./database');
 class Player {
   constructor({
       id,
@@ -58,9 +57,9 @@ class Player {
         joinedAt: data.joinedAt?.toDate(),
         eliminationAttempts: data.eliminationAttempts?.map(attempt => ({
             ...attempt,
-            timestamp: attempt.timestamp?.toDate(),
-            disputeTimestamp: attempt.disputeTimestamp?.toDate(),
-            verifiedAt: attempt.verifiedAt?.toDate()
+            timestamp: attempt.timestamp?.toDate ? attempt.timestamp.toDate() : attempt.timestamp,
+            disputeTimestamp: attempt.disputeTimestamp?.toDate ? attempt.disputeTimestamp.toDate() : attempt.disputeTimestamp,
+            verifiedAt: attempt.verifiedAt?.toDate ? attempt.verifiedAt.toDate() : attempt.verifiedAt
         }))
     });
   }
@@ -79,6 +78,22 @@ class Player {
         return null;
     }
   }
+  static async findPendingPlayersByGameId(gameId) {
+    try {
+        const playersRef = collection(db, 'players');
+        const playerQuery = query(
+            playersRef, 
+            where('gameId', '==', gameId),
+            where('isPending', '==', true)
+        );
+        const playerSnapshot = await getDocs(playerQuery);
+        
+        return playerSnapshot.docs.map(doc => Player.fromFirestore(doc));
+    } catch (error) {
+        console.error('Error fetching pending players:', error);
+        throw error;
+    }
+}
   static async findPlayersByGameId(gameId) {
     try {
         const playersRef = collection(db, 'players');
@@ -93,7 +108,7 @@ class Player {
   } 
   async findTarget() {
     if (!this.targetId) return null;
-    return Player.findById(this.targetId);
+    return Player.findPlayerById(this.targetId);
   }
   async findKiller() {
     try {
@@ -116,6 +131,27 @@ class Player {
         throw error;
     }
   }
+
+  static async findByUserAndGame(userId, gameId) {
+    try {
+        const playersRef = collection(db, 'players');
+        const playerQuery = query(
+            playersRef, 
+            where('userId', '==', userId),
+            where('gameId', '==', gameId)
+        );
+        const playerSnapshot = await getDocs(playerQuery);
+        
+        if (playerSnapshot.empty) {
+            return null;
+        }
+        
+        return Player.fromFirestore(playerSnapshot.docs[0]);
+    } catch (error) {
+        console.error('Error fetching player:', error);
+        throw error;
+    }
+  }
   canBeEliminated() {
     return this.isAlive && !this.isPending;
   }
@@ -130,6 +166,9 @@ class Player {
     });
     this.isPending = true;
   }
+  getLatestEliminationAttempt() {
+    return this.eliminationAttempts[this.eliminationAttempts.length - 1];
+}
 
   verifyElimination() {
 
